@@ -22,6 +22,7 @@ class TaskType(Enum):
     IO_SIMULATION = "IO Simulation (Benchmark)"
     WEB_CRAWLER = "Distributed Web Crawler (Use Case)"
     IMAGE_BLUR = "Image Blur (Use Case)"
+    CRYPTO_HASH = "Crypto Proof-of-Work (Use Case)"
 
 
 @dataclass

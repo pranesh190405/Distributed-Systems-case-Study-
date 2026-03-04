@@ -11,6 +11,7 @@ Algorithms:
 """
 
 import base64
+import hashlib
 import io
 import random
 import math
@@ -44,6 +45,8 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
         result_data = _compute_web_scraper(data)
     elif task_type == "Image Blur (Use Case)":
         result_data = _compute_image_blur(data)
+    elif task_type == "Crypto Proof-of-Work (Use Case)":
+        result_data = _compute_crypto_hash(data)
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 
@@ -288,3 +291,39 @@ def _compute_image_blur(data: dict) -> dict:
             "error": str(e),
             "traceback": traceback.format_exc(),
         }
+
+# ─── Crypto Proof-of-Work — CPU-Bound (Use Case) ─────────────────
+MAX_ITERATIONS = 10_000_000
+
+def _compute_crypto_hash(data: dict) -> dict:
+    """
+    Simulated Proof-of-Work: find a nonce such that
+    SHA-256(base_string + str(nonce)) has `difficulty` leading zeros.
+    Input:  base_string (str), difficulty (int)
+    """
+    base_string = data["base_string"]
+    difficulty = data["difficulty"]
+    max_iter = data.get("max_iterations", MAX_ITERATIONS)
+    target_prefix = "0" * difficulty
+
+    for nonce in range(max_iter):
+        candidate = f"{base_string}{nonce}"
+        hash_hex = hashlib.sha256(candidate.encode("utf-8")).hexdigest()
+
+        if hash_hex.startswith(target_prefix):
+            return {
+                "status": "success",
+                "difficulty": difficulty,
+                "nonce_found": nonce,
+                "final_hash": hash_hex,
+                "iterations_tried": nonce + 1,
+            }
+
+    return {
+        "status": "timeout",
+        "difficulty": difficulty,
+        "nonce_found": -1,
+        "final_hash": "",
+        "iterations_tried": max_iter,
+        "error": f"No hash found within {max_iter:,} iterations",
+    }

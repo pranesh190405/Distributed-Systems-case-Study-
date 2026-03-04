@@ -9,6 +9,7 @@ Usage:
 
 import base64
 import configparser
+import hashlib
 import io
 import math
 import os
@@ -454,6 +455,48 @@ class MasterServer:
 
         return chunks, {"total_images": num_chunks}
 
+    def _split_crypto_hash(self, num_chunks: int, task_id: str):
+        """Split Crypto Proof-of-Work into tasks with mixed difficulty."""
+        import string
+        rng = random.Random(42)
+        chunks = []
+
+        # Mix of easy and hard tasks to simulate variable CPU workloads
+        difficulties = []
+        for c in range(num_chunks):
+            if c % 5 == 0:
+                # Every 5th chunk is hard (difficulty 5 or 6)
+                difficulties.append(rng.choice([5, 6]))
+            elif c % 3 == 0:
+                # Some medium tasks
+                difficulties.append(4)
+            else:
+                # Majority are easy
+                difficulties.append(rng.choice([3, 4]))
+
+        for c in range(num_chunks):
+            # Generate a random base string for each task
+            base_string = "".join(rng.choices(
+                string.ascii_letters + string.digits, k=32
+            ))
+            diff = difficulties[c]
+
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.CRYPTO_HASH.value,
+                data={
+                    "base_string": base_string,
+                    "difficulty": diff,
+                    "max_iterations": 10_000_000,
+                }
+            ))
+            self._log(f"  Generated chunk {c}: difficulty={diff}, base=\"{base_string[:12]}...\"")
+
+        return chunks, {
+            "total_tasks": num_chunks,
+            "difficulty_distribution": {d: difficulties.count(d) for d in sorted(set(difficulties))},
+        }
+
     # ─── Dispatching ──────────────────────────────────────────────
 
     def _dispatch_chunk(self, chunk: TaskChunk, worker: NodeInfo) -> dict:
@@ -752,6 +795,54 @@ class MasterServer:
         lines.append(f"Verification: {'✓ PASSED' if error_count == 0 else '⚠ PARTIAL (' + str(error_count) + ' errors)'}")
         return "\n".join(lines)
 
+    def _assemble_crypto_hash(self, results: list, metadata: dict) -> str:
+        """Assemble Crypto Proof-of-Work results."""
+        success_count = 0
+        timeout_count = 0
+        error_count = 0
+        diff_stats = {}  # {difficulty: [(nonce, iterations, time_ms), ...]}
+
+        for r in results:
+            if not r.get("success", False):
+                error_count += 1
+                continue
+            data = r.get("data", {})
+            diff = data.get("difficulty", 0)
+            if diff not in diff_stats:
+                diff_stats[diff] = []
+
+            if data.get("status") == "success":
+                success_count += 1
+                diff_stats[diff].append({
+                    "nonce": data.get("nonce_found", 0),
+                    "iterations": data.get("iterations_tried", 0),
+                    "time_ms": r.get("execution_time_ms", 0),
+                })
+            elif data.get("status") == "timeout":
+                timeout_count += 1
+            else:
+                error_count += 1
+
+        lines = [
+            f"Crypto Proof-of-Work Complete",
+            f"Total tasks: {metadata['total_tasks']}",
+            f"Successful: {success_count}, Timeouts: {timeout_count}, Errors: {error_count}",
+            f"Difficulty distribution: {metadata['difficulty_distribution']}",
+            f"Per-difficulty results:",
+        ]
+        for diff in sorted(diff_stats.keys()):
+            entries = diff_stats[diff]
+            if entries:
+                avg_iter = sum(e['iterations'] for e in entries) / len(entries)
+                avg_ms = sum(e['time_ms'] for e in entries) / len(entries)
+                lines.append(f"  Difficulty {diff}: {len(entries)} solved, "
+                             f"avg {avg_iter:,.0f} iterations, avg {avg_ms:.0f}ms")
+
+        status = '✓ PASSED' if (error_count == 0 and timeout_count == 0) else \
+                 f'⚠ PARTIAL ({timeout_count} timeouts, {error_count} errors)'
+        lines.append(f"Verification: {status}")
+        return "\n".join(lines)
+
     # ─── Run Experiment ───────────────────────────────────────────
 
     def run_experiment(self, task_type_name: str, algorithm_name: str) -> dict:
@@ -802,6 +893,8 @@ class MasterServer:
             chunks, metadata = self._split_web_scraper(num_chunks, task_id)
         elif task_type_name == TaskType.IMAGE_BLUR.value:
             chunks, metadata = self._split_image_blur(num_chunks, task_id)
+        elif task_type_name == TaskType.CRYPTO_HASH.value:
+            chunks, metadata = self._split_crypto_hash(num_chunks, task_id)
         else:
             self.is_running = False
             return {"error": f"Unknown task type: {task_type_name}"}
@@ -876,6 +969,8 @@ class MasterServer:
             summary = self._assemble_io(results, metadata)
         elif task_type_name == TaskType.IMAGE_BLUR.value:
             summary = self._assemble_image_blur(results, metadata)
+        elif task_type_name == TaskType.CRYPTO_HASH.value:
+            summary = self._assemble_crypto_hash(results, metadata)
         else:
             summary = self._assemble_web_scraper(results, metadata)
 
