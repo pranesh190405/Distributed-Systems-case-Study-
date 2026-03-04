@@ -499,7 +499,7 @@ class MasterServer:
 
     def _split_log_analysis(self, num_chunks: int, task_id: str):
         """Split access logs into chunks of lines."""
-        log_path = os.path.join(os.getcwd(), "Dataset", "accesslog.csv")
+        log_path = os.path.join(os.getcwd(), "datasets", "accesslog.csv")
         try:
             with open(log_path, "r", encoding="utf-8") as f:
                 all_lines = f.readlines()
