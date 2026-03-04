@@ -29,6 +29,8 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
         result_data = _compute_sorting(data)
     elif task_type == "IO Simulation":
         result_data = _compute_io_sim(data)
+    elif task_type == "Web Server Log Analysis":
+        result_data = _compute_log_analysis(data)
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 
@@ -165,4 +167,51 @@ def _compute_io_sim(data: dict) -> dict:
     time.sleep(sleep_time)
     return {
         "slept_for": sleep_time
+    }
+
+
+# ─── Web Server Log Analysis ──────────────────────────────────────────
+
+def _compute_log_analysis(data: dict) -> dict:
+    """
+    Parse a batch of server logs and aggregate metrics.
+    Input:  logs (list of strings)
+    Output: ip_counts, status_counts, method_counts, total_bytes
+    """
+    logs = data.get("logs", [])
+    ip_counts = {}
+    status_counts = {}
+    method_counts = {}
+    total_bytes = 0
+
+    for line in logs:
+        # Simple parser for: 54.36.149.41 - - [22/Jan/2019:03:56:14 +0330] "GET /url HTTP/1.1" 200 30577 ...
+        try:
+            parts = line.split()
+            if len(parts) < 10:
+                continue
+            
+            ip = parts[0]
+            # Method is usually at index 5 (removing quote)
+            method = parts[5].replace('"', '')
+            # Status code is usually at index 8
+            status = parts[8]
+            # Bytes is usually at index 9
+            try:
+                b = int(parts[9])
+            except ValueError:
+                b = 0
+            
+            ip_counts[ip] = ip_counts.get(ip, 0) + 1
+            status_counts[status] = status_counts.get(status, 0) + 1
+            method_counts[method] = method_counts.get(method, 0) + 1
+            total_bytes += b
+        except Exception:
+            continue
+
+    return {
+        "ip_counts": ip_counts,
+        "status_counts": status_counts,
+        "method_counts": method_counts,
+        "total_bytes": total_bytes
     }

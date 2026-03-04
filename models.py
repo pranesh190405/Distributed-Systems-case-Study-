@@ -16,6 +16,7 @@ class TaskType(Enum):
     PRIME_FACTORIZATION = "Prime Factorization"
     DATA_SORTING = "Data Sorting"
     IO_SIMULATION = "IO Simulation"
+    WEB_LOG_ANALYSIS = "Web Server Log Analysis"
 
 
 @dataclass
