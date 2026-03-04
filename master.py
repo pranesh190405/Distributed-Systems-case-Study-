@@ -7,7 +7,9 @@ Usage:
     Then open http://localhost:5000 in your browser.
 """
 
+import base64
 import configparser
+import io
 import math
 import os
 import random
@@ -415,6 +417,43 @@ class MasterServer:
 
         return chunks, {"expected_total_sleep": sum(c.data["simulated_latency"] for c in chunks)}
 
+    def _split_image_blur(self, num_chunks: int, task_id: str):
+        """Split Image Blur task into chunks with varying image sizes."""
+        from PIL import Image
+        rng = random.Random(42)
+        sizes = [256, 512, 1024, 2048, 4096]
+        chunks = []
+
+        for c in range(num_chunks):
+            # Pick a random size to simulate highly variable workloads
+            sz = rng.choice(sizes)
+            label = f"{sz}x{sz}"
+
+            # Generate a dummy RGB image in memory
+            img = Image.new("RGB", (sz, sz))
+            pixels = img.load()
+            for y in range(sz):
+                for x in range(sz):
+                    pixels[x, y] = (
+                        (x * 7 + y * 13 + c) % 256,
+                        (x * 11 + y * 3 + c) % 256,
+                        (x * 5 + y * 17 + c) % 256,
+                    )
+
+            # Serialize to base64
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.IMAGE_BLUR.value,
+                data={"image_b64": b64, "image_size": label}
+            ))
+            self._log(f"  Generated chunk {c}: {label} ({len(b64) // 1024} KB payload)")
+
+        return chunks, {"total_images": num_chunks}
+
     # ─── Dispatching ──────────────────────────────────────────────
 
     def _dispatch_chunk(self, chunk: TaskChunk, worker: NodeInfo) -> dict:
@@ -679,6 +718,40 @@ class MasterServer:
         ]
         return "\n".join(lines)
 
+    def _assemble_image_blur(self, results: list, metadata: dict) -> str:
+        """Assemble Image Blur results."""
+        success_count = 0
+        error_count = 0
+        size_times = {}  # {"2048x2048": [ms1, ms2, ...]}
+
+        for r in results:
+            if not r.get("success", False):
+                error_count += 1
+                continue
+            data = r.get("data", {})
+            if data.get("status") == "success":
+                success_count += 1
+                sz = data.get("image_size", "unknown")
+                if sz not in size_times:
+                    size_times[sz] = []
+                size_times[sz].append(r.get("execution_time_ms", 0))
+            else:
+                error_count += 1
+
+        lines = [
+            f"Image Blur Processing Complete",
+            f"Total images: {metadata['total_images']}",
+            f"Successful: {success_count}, Failed: {error_count}",
+            f"Per-size blur times:",
+        ]
+        for sz in sorted(size_times.keys()):
+            times = size_times[sz]
+            avg = sum(times) / len(times) if times else 0
+            lines.append(f"  {sz}: {len(times)} images, avg {avg:.0f}ms")
+
+        lines.append(f"Verification: {'✓ PASSED' if error_count == 0 else '⚠ PARTIAL (' + str(error_count) + ' errors)'}")
+        return "\n".join(lines)
+
     # ─── Run Experiment ───────────────────────────────────────────
 
     def run_experiment(self, task_type_name: str, algorithm_name: str) -> dict:
@@ -727,6 +800,8 @@ class MasterServer:
             chunks, metadata = self._split_io(num_chunks, task_id)
         elif task_type_name == TaskType.WEB_CRAWLER.value:
             chunks, metadata = self._split_web_scraper(num_chunks, task_id)
+        elif task_type_name == TaskType.IMAGE_BLUR.value:
+            chunks, metadata = self._split_image_blur(num_chunks, task_id)
         else:
             self.is_running = False
             return {"error": f"Unknown task type: {task_type_name}"}
@@ -799,6 +874,8 @@ class MasterServer:
             summary = self._assemble_etl_pipeline(results, metadata)
         elif task_type_name == TaskType.IO_SIMULATION.value:
             summary = self._assemble_io(results, metadata)
+        elif task_type_name == TaskType.IMAGE_BLUR.value:
+            summary = self._assemble_image_blur(results, metadata)
         else:
             summary = self._assemble_web_scraper(results, metadata)
 

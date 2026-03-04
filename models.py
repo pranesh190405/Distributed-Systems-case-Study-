@@ -21,6 +21,7 @@ class TaskType(Enum):
     ETL_PIPELINE = "ETL Log Aggregation (Use Case)"
     IO_SIMULATION = "IO Simulation (Benchmark)"
     WEB_CRAWLER = "Distributed Web Crawler (Use Case)"
+    IMAGE_BLUR = "Image Blur (Use Case)"
 
 
 @dataclass

@@ -10,9 +10,12 @@ Algorithms:
   5. IO Simulation — Simulating network/disk I/O wait
 """
 
+import base64
+import io
 import random
 import math
 import time
+import traceback
 
 
 def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
@@ -39,6 +42,8 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
         result_data = _compute_io_sim(data)
     elif task_type == "Distributed Web Crawler (Use Case)":
         result_data = _compute_web_scraper(data)
+    elif task_type == "Image Blur (Use Case)":
+        result_data = _compute_image_blur(data)
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 
@@ -248,3 +253,38 @@ def _compute_web_scraper(data: dict) -> dict:
         "bytes_downloaded": int(random.Random().uniform(1024, 50000)), # mock data size
         "latency_sec": simulated_latency
     }
+
+# ─── Image Blur — CPU-Bound (Use Case) ───────────────────────────
+def _compute_image_blur(data: dict) -> dict:
+    """
+    Apply a heavy GaussianBlur to a base64-encoded image.
+    The processed image is discarded — this is purely a CPU benchmark.
+    Input:  image_b64 (str), image_size (str e.g. "2048x2048")
+    """
+    try:
+        from PIL import Image, ImageFilter
+
+        raw_bytes = base64.b64decode(data["image_b64"])
+        img = Image.open(io.BytesIO(raw_bytes))
+        img.load()  # Force full decode to catch corruption early
+
+        # Heavy CPU-bound operation
+        blurred = img.filter(ImageFilter.GaussianBlur(radius=15))
+
+        # Discard — do NOT save to disk
+        del blurred
+
+        return {
+            "status": "success",
+            "task_type": "image_blur",
+            "image_size": data.get("image_size", "unknown"),
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "task_type": "image_blur",
+            "image_size": data.get("image_size", "unknown"),
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+        }
