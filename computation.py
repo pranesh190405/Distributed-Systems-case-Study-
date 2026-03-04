@@ -47,6 +47,8 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
         result_data = _compute_image_blur(data)
     elif task_type == "Crypto Proof-of-Work (Use Case)":
         result_data = _compute_crypto_hash(data)
+    elif task_type == "Web Server Log Analysis (Use Case)":
+        result_data = _compute_log_analysis(data)
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 

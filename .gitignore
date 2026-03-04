@@ -70,7 +70,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-
+added_functions.txt
 # pyenv
 .python-version
 

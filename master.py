@@ -497,6 +497,36 @@ class MasterServer:
             "difficulty_distribution": {d: difficulties.count(d) for d in sorted(set(difficulties))},
         }
 
+    def _split_log_analysis(self, num_chunks: int, task_id: str):
+        """Split access logs into chunks of lines."""
+        log_path = os.path.join(os.getcwd(), "Dataset", "accesslog.csv")
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                all_lines = f.readlines()
+        except Exception as e:
+            self._log(f"Error reading log file: {e}")
+            all_lines = []
+
+        chunks = []
+        if not all_lines:
+            return chunks, {}
+
+        per_chunk = len(all_lines) // num_chunks
+        remainder = len(all_lines) % num_chunks
+        start = 0
+
+        for c in range(num_chunks):
+            size = per_chunk + (1 if c < remainder else 0)
+            batch = all_lines[start : start + size]
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.WEB_LOG_ANALYSIS.value,
+                data={"logs": batch}
+            ))
+            start += size
+
+        return chunks, {"total_lines": len(all_lines)}
+
     # ─── Dispatching ──────────────────────────────────────────────
 
     def _dispatch_chunk(self, chunk: TaskChunk, worker: NodeInfo) -> dict:
@@ -843,6 +873,47 @@ class MasterServer:
         lines.append(f"Verification: {status}")
         return "\n".join(lines)
 
+    def _assemble_log_analysis(self, results: list, metadata: dict) -> str:
+        """Assemble results from distributed log analysis."""
+        combined_ips = {}
+        combined_status = {}
+        combined_methods = {}
+        total_bw = 0
+
+        for r in results:
+            if not r.get("success", False):
+                continue
+            data = r.get("data", {})
+            
+            # Merge IPs
+            for ip, count in data.get("ip_counts", {}).items():
+                combined_ips[ip] = combined_ips.get(ip, 0) + count
+            
+            # Merge Status
+            for status, count in data.get("status_counts", {}).items():
+                combined_status[status] = combined_status.get(status, 0) + count
+                
+            # Merge Methods
+            for method, count in data.get("method_counts", {}).items():
+                combined_methods[method] = combined_methods.get(method, 0) + count
+                
+            total_bw += data.get("total_bytes", 0)
+
+        # Sort top IPs
+        top_ips = sorted(combined_ips.items(), key=lambda x: x[1], reverse=True)[:5]
+        ip_summary = "\n".join([f"  - {ip}: {count} hits" for ip, count in top_ips])
+
+        lines = [
+            f"Web Server Log Analysis Complete",
+            f"Total lines processed: {metadata.get('total_lines', 0):,}",
+            f"Total Bandwidth: {total_bw / (1024*1024):.2f} MB",
+            f"Top 5 IPs:",
+            ip_summary,
+            f"Status Codes: {combined_status}",
+            f"HTTP Methods: {combined_methods}"
+        ]
+        return "\n".join(lines)
+
     # ─── Run Experiment ───────────────────────────────────────────
 
     def run_experiment(self, task_type_name: str, algorithm_name: str) -> dict:
@@ -895,6 +966,8 @@ class MasterServer:
             chunks, metadata = self._split_image_blur(num_chunks, task_id)
         elif task_type_name == TaskType.CRYPTO_HASH.value:
             chunks, metadata = self._split_crypto_hash(num_chunks, task_id)
+        elif task_type_name == TaskType.WEB_LOG_ANALYSIS.value:
+            chunks, metadata = self._split_log_analysis(num_chunks, task_id)
         else:
             self.is_running = False
             return {"error": f"Unknown task type: {task_type_name}"}
@@ -971,6 +1044,8 @@ class MasterServer:
             summary = self._assemble_image_blur(results, metadata)
         elif task_type_name == TaskType.CRYPTO_HASH.value:
             summary = self._assemble_crypto_hash(results, metadata)
+        elif task_type_name == TaskType.WEB_LOG_ANALYSIS.value:
+            summary = self._assemble_log_analysis(results, metadata)
         else:
             summary = self._assemble_web_scraper(results, metadata)
 

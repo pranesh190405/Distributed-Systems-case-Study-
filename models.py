@@ -23,6 +23,7 @@ class TaskType(Enum):
     WEB_CRAWLER = "Distributed Web Crawler (Use Case)"
     IMAGE_BLUR = "Image Blur (Use Case)"
     CRYPTO_HASH = "Crypto Proof-of-Work (Use Case)"
+    WEB_LOG_ANALYSIS = "Web Server Log Analysis (Use Case)"
 
 
 @dataclass
