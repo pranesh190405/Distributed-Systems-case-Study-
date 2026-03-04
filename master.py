@@ -65,14 +65,15 @@ class MasterServer:
             return
 
         # Parse workers
-        workers_str = config.get("workers", "nodes",
-                                  fallback="localhost:8001:1,localhost:8002:1,localhost:8003:1")
-        for w in workers_str.split(","):
-            parts = w.strip().split(":")
-            host = parts[0]
-            port = int(parts[1])
-            weight = int(parts[2]) if len(parts) > 2 else 1
-            self.workers.append(NodeInfo(host, port, weight))
+        workers_str = config.get("workers", "nodes", fallback="")
+        if workers_str.strip():
+            for w in workers_str.split(","):
+                parts = w.strip().split(":")
+                if len(parts) >= 2:
+                    host = parts[0]
+                    port = int(parts[1])
+                    weight = int(parts[2]) if len(parts) > 2 else 1
+                    self.workers.append(NodeInfo(host, port, weight))
 
         # Task parameters
         self.matrix_size = config.getint("tasks", "matrix_size", fallback=300)
@@ -138,6 +139,46 @@ class MasterServer:
     def stop_heartbeat(self):
         self._heartbeat_running = False
 
+    # ─── UDP Discovery ────────────────────────────────────────────
+
+    def start_udp_discovery(self):
+        """Listen for UDP broadcasts from workers on port 9999."""
+        def _loop():
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(("", 9999))
+            self._log("UDP Discovery Listener started on port 9999")
+            
+            while True:
+                try:
+                    data, addr = sock.recvfrom(1024)
+                    msg = data.decode("utf-8")
+                    # Format: WORKER_READY:<PORT>
+                    if msg.startswith("WORKER_READY:"):
+                        parts = msg.split(":")
+                        if len(parts) >= 2:
+                            ip = addr[0]  # Get IP from UDP sender address
+                            port = int(parts[1])
+                            worker_id = f"{ip}:{port}"
+                            
+                            exists = False
+                            for w in self.workers:
+                                if w.id == worker_id:
+                                    w.alive = True
+                                    exists = True
+                                    break
+                            
+                            if not exists:
+                                new_worker = NodeInfo(ip, port, 1)
+                                new_worker.alive = True
+                                self.workers.append(new_worker)
+                                self._log(f"Discovered new worker via UDP: {worker_id}")
+                except Exception as e:
+                    self._log(f"UDP Discovery Error: {e}")
+                    time.sleep(1)
+
+        threading.Thread(target=_loop, daemon=True).start()
+
     # ─── Task Splitting ───────────────────────────────────────────
 
     def _split_matrix(self, num_chunks: int, task_id: str):
@@ -192,7 +233,7 @@ class MasterServer:
             end = start + chunk_rows
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.MATRIX_MULTIPLICATION.value,
+                task_type=TaskType.ML_INFERENCE.value,
                 data={
                     "batch_x": batch_x[start:end],
                     "weights": weights,
@@ -233,7 +274,7 @@ class MasterServer:
             samples = per_chunk + (1 if c < remainder else 0)
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.MONTE_CARLO_PI.value,
+                task_type=TaskType.FINANCIAL_PRICING.value,
                 data={
                     "num_paths": samples, 
                     "S0": 100.0, "K": 105.0, "T": 1.0, 
@@ -293,7 +334,7 @@ class MasterServer:
             size = per_chunk + (1 if c < remainder else 0)
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.PRIME_FACTORIZATION.value,
+                task_type=TaskType.RSA_CRACKING.value,
                 data={"public_keys": numbers[start:start + size]}
             ))
             start += size
@@ -335,7 +376,7 @@ class MasterServer:
                 
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.DATA_SORTING.value,
+                task_type=TaskType.ETL_PIPELINE.value,
                 data={"log_lines": logs}
             ))
 
@@ -368,7 +409,7 @@ class MasterServer:
             url = rng.choice(urls)
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.IO_SIMULATION.value,
+                task_type=TaskType.WEB_CRAWLER.value,
                 data={"target_url": url, "simulated_latency": latency}
             ))
 
@@ -398,6 +439,7 @@ class MasterServer:
 
             elapsed = (time.time() - start_time) * 1000
             worker.record_task_completion(elapsed)
+            response["network_latency_ms"] = max(0.0, elapsed - response.get("execution_time_ms", elapsed))
             return response
 
         except socket.timeout:
@@ -694,26 +736,47 @@ class MasterServer:
         start_time = time.time()
 
         results = []
+        import concurrent.futures
         with ThreadPoolExecutor(max_workers=20) as pool:
             futures = {}
-            for chunk in chunks:
+
+            def _submit(chunk):
+                alive = [w for w in self.workers if w.alive]
+                if not alive:
+                    self._log("ERROR: No alive workers to dispatch chunk!")
+                    results.append({"success": False, "chunk_id": chunk.chunk_id, "error_message": "No alive workers"})
+                    return
                 worker = balancer.select_worker(self.workers, chunk)
                 self._log(f"  Chunk {chunk.chunk_id} → {worker.id}")
                 f = pool.submit(self._dispatch_chunk, chunk, worker)
                 futures[f] = chunk
 
-            for f in as_completed(futures):
-                try:
-                    result = f.result(timeout=self.read_timeout)
-                    results.append(result)
-                    if result.get("success"):
-                        self._log(f"  ✓ Chunk {result.get('chunk_id')} from "
-                                  f"{result.get('worker_id')} ({result.get('execution_time_ms', 0):.0f}ms)")
-                    else:
-                        self._log(f"  ✗ Chunk {result.get('chunk_id')} failed: "
-                                  f"{result.get('error_message', 'unknown')}")
-                except Exception as e:
-                    self._log(f"  ✗ Future failed: {e}")
+            for chunk in chunks:
+                _submit(chunk)
+
+            while futures:
+                done, not_done = concurrent.futures.wait(list(futures.keys()), return_when=concurrent.futures.FIRST_COMPLETED)
+                for f in done:
+                    chunk = futures.pop(f)
+                    try:
+                        result = f.result(timeout=self.read_timeout)
+                        if result.get("success"):
+                            results.append(result)
+                            self._log(f"  ✓ Chunk {result.get('chunk_id')} from "
+                                      f"{result.get('worker_id')} ({result.get('execution_time_ms', 0):.0f}ms)")
+                        else:
+                            self._log(f"  ✗ Chunk {result.get('chunk_id')} failed: "
+                                      f"{result.get('error_message', 'unknown')} - REQUEUING")
+                            # Mark worker as dead if it was a connection error
+                            error_msg = result.get('error_message', '')
+                            if "Timeout" in error_msg or "Connection refused" in error_msg:
+                                for w in self.workers:
+                                    if w.id == result.get("worker_id"):
+                                        w.alive = False
+                            _submit(chunk)
+                    except Exception as e:
+                        self._log(f"  ✗ Future failed for chunk {chunk.chunk_id}: {e} - REQUEUING")
+                        _submit(chunk)
 
         total_time = (time.time() - start_time) * 1000
 
@@ -780,6 +843,11 @@ class MasterServer:
         # Throughput
         throughput = len(results) / (total_ms / 1000.0) if total_ms > 0 else 0
 
+        # Network Latency
+        total_net_latency = sum(r.get("network_latency_ms", 0) for r in results if r.get("success"))
+        success_count = sum(1 for r in results if r.get("success"))
+        avg_net_latency = total_net_latency / success_count if success_count > 0 else 0.0
+
         snapshot = MetricSnapshot(
             algorithm_name=algo,
             task_type=task_type,
@@ -790,6 +858,7 @@ class MasterServer:
             max_node_utilization=max_cpu,
             throughput=throughput,
             result_summary=summary,
+            avg_network_latency_ms=avg_net_latency,
         )
 
         self.comparison_results.append(snapshot.to_dict())
@@ -906,6 +975,7 @@ if __name__ == "__main__":
     print(f"  Dashboard: http://localhost:5000")
     print(f"{'='*60}\n")
 
+    master.start_udp_discovery()
     master.start_heartbeat(interval_sec=3)
     
     # Auto-open browser after 1.5 seconds

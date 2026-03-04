@@ -56,8 +56,27 @@ class WorkerServer:
         except Exception:
             return "localhost"
 
+    def _start_udp_broadcaster(self):
+        """Periodically broadcast presence over UDP."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        try:
+            while self.running:
+                msg = f"WORKER_READY:{self.port}".encode("utf-8")
+                sock.sendto(msg, ("255.255.255.255", 9999))
+                time.sleep(2)
+        except Exception as e:
+            print(f"[Worker {self.worker_id}] UDP Broadcaster error: {e}")
+        finally:
+            try:
+                sock.close()
+            except:
+                pass
+
     def start(self):
         """Start listening for incoming connections from the Master."""
+        threading.Thread(target=self._start_udp_broadcaster, daemon=True).start()
+
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind(("0.0.0.0", self.port))   # Accept connections from ANY interface

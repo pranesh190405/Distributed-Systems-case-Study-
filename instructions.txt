@@ -1,0 +1,45 @@
+======================================================
+  SETTING UP A WORKER ON A NEW WINDOWS LAPTOP
+======================================================
+
+STEP 1: INSTALL PYTHON
+1. Download and install Python from https://python.org
+2. IMPORTANT: During installation, make sure to check the box "Add Python to PATH".
+
+STEP 2: PREPARE FILES
+Create a new folder on the laptop (e.g., C:\Worker) and copy the following 4 files into it:
+  - worker.py
+  - protocol.py
+  - computation.py
+  - requirements.txt
+
+STEP 3: INSTALL DEPENDENCIES
+1. Open PowerShell in that new folder.
+2. Run this command:
+   pip install -r requirements.txt
+
+STEP 4: START THE WORKER
+1. In the same PowerShell window, run:
+   python worker.py 8001
+2. If the Windows Firewall pops up, click "Allow access".
+3. The terminal will print out the IPv4 address of the laptop (e.g., 10.227.169.136). Keep this open!
+
+STEP 5: CONNECT THE WORKER TO THE MASTER
+1. On the Master laptop (your computer), open the `config.ini` file.
+2. Add the worker's IP address to the `nodes=` line in the `[workers]` section:
+   Example: nodes=10.227.169.136:8001:1
+   (If you have multiple workers, separate them with commas: nodes=10.227.169.136:8001:1,10.227.169.56:8001:1)
+3. Restart the Master server if it's already running (`python master.py`).
+
+STEP 6: VERIFY
+Open http://localhost:5000 on the Master laptop. You should see all configured workers showing as "Online"!
+
+KEY RULES:
+- All laptops MUST be on the same Wi-Fi network.
+- Always start the workers FIRST, then the master.
+- If a worker disconnects from Wi-Fi and reconnects, its IP might change. You will need to update config.ini with the new IP.
+
+netsh advfirewall firewall add rule name="Worker UDP Broadcast" dir=out action=allow protocol=UDP remoteport=9999
+netsh advfirewall firewall add rule name="Worker TCP Listen" dir=in action=allow protocol=TCP localport=8001
+
+nodes=192.168.1.100:8001:1,192.168.1.105:8001:1

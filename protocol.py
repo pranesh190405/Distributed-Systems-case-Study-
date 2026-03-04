@@ -14,7 +14,7 @@ HEARTBEAT_REQUEST = "__HEARTBEAT_PING__"
 def send_message(sock: socket.socket, data: dict):
     """Send a JSON message over a socket with length-prefix framing."""
     payload = json.dumps(data).encode("utf-8")
-    length = struct.pack("!I", len(payload))
+    length = struct.pack(">I", len(payload))
     sock.sendall(length + payload)
 
 
@@ -24,7 +24,7 @@ def receive_message(sock: socket.socket) -> dict:
     raw_length = _recv_exact(sock, 4)
     if not raw_length:
         raise ConnectionError("Connection closed while reading length header")
-    length = struct.unpack("!I", raw_length)[0]
+    length = struct.unpack(">I", raw_length)[0]
 
     # Read the payload
     raw_payload = _recv_exact(sock, length)

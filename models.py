@@ -65,6 +65,7 @@ class TaskResult:
     data: Optional[dict] = None
     execution_time_ms: float = 0.0
     error_message: Optional[str] = None
+    network_latency_ms: float = 0.0
 
     def to_dict(self):
         return {
@@ -75,6 +76,7 @@ class TaskResult:
             "data": self.data,
             "execution_time_ms": self.execution_time_ms,
             "error_message": self.error_message,
+            "network_latency_ms": self.network_latency_ms,
         }
 
     @staticmethod
@@ -87,6 +89,7 @@ class TaskResult:
             data=d.get("data"),
             execution_time_ms=d.get("execution_time_ms", 0),
             error_message=d.get("error_message"),
+            network_latency_ms=d.get("network_latency_ms", 0),
         )
 
 
@@ -148,6 +151,7 @@ class MetricSnapshot:
     max_node_utilization: float = 0.0
     throughput: float = 0.0
     result_summary: str = ""
+    avg_network_latency_ms: float = 0.0
 
     def to_dict(self):
         return {
@@ -160,4 +164,5 @@ class MetricSnapshot:
             "max_node_utilization": round(self.max_node_utilization, 1),
             "throughput": round(self.throughput, 2),
             "result_summary": self.result_summary,
+            "avg_network_latency_ms": round(self.avg_network_latency_ms, 2),
         }
