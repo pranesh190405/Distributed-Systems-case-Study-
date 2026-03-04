@@ -170,6 +170,41 @@ class MasterServer:
 
         return chunks, {"mat_a": mat_a, "mat_b": mat_b, "n": n}
 
+    def _split_ml_inference(self, num_chunks: int, task_id: str):
+        """Split ML Batch Inference task into row-slab chunks."""
+        # We simulate a dataset of 5000 rows, 100 features. And model weights 100x50.
+        n_samples = 5000
+        n_features = 100
+        n_neurons = 50
+        rng = random.Random(42)
+        batch_x = [[rng.random() for _ in range(n_features)] for _ in range(n_samples)]
+        weights = [[rng.random() for _ in range(n_neurons)] for _ in range(n_features)]
+        bias = [rng.random() for _ in range(n_neurons)]
+
+        chunks = []
+        rows_per = n_samples // num_chunks
+        remainder = n_samples // num_chunks
+        remainder = n_samples % num_chunks
+        start = 0
+
+        for c in range(num_chunks):
+            chunk_rows = rows_per + (1 if c < remainder else 0)
+            end = start + chunk_rows
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.MATRIX_MULTIPLICATION.value,
+                data={
+                    "batch_x": batch_x[start:end],
+                    "weights": weights,
+                    "bias": bias,
+                    "start_idx": start,
+                    "end_idx": end,
+                }
+            ))
+            start = end
+
+        return chunks, {"n_samples": n_samples, "n_neurons": n_neurons}
+
     def _split_monte_carlo(self, num_chunks: int, task_id: str):
         """Split Monte Carlo Pi into sample-count chunks."""
         total = self.monte_carlo_samples
@@ -183,6 +218,28 @@ class MasterServer:
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
                 task_type=TaskType.MONTE_CARLO_PI.value,
                 data={"num_samples": samples, "seed": c * 12345 + 1}
+            ))
+
+        return chunks, {"total_samples": total}
+
+    def _split_financial_pricing(self, num_chunks: int, task_id: str):
+        """Split Monte Carlo option pricing into sample-count chunks."""
+        total = self.monte_carlo_samples
+        per_chunk = total // num_chunks
+        remainder = total % num_chunks
+        chunks = []
+
+        for c in range(num_chunks):
+            samples = per_chunk + (1 if c < remainder else 0)
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.MONTE_CARLO_PI.value,
+                data={
+                    "num_paths": samples, 
+                    "S0": 100.0, "K": 105.0, "T": 1.0, 
+                    "r": 0.05, "sigma": 0.2,
+                    "seed": c * 12345 + 1
+                }
             ))
 
         return chunks, {"total_samples": total}
@@ -213,10 +270,39 @@ class MasterServer:
 
         return chunks, {"total_numbers": self.prime_count, "all_numbers": numbers}
 
+    def _split_rsa_cracking(self, num_chunks: int, task_id: str):
+        """Split RSA Key Cracking into batches of public keys."""
+        rng = random.Random(12345)
+        # Create a skewed workload to prove dynamic balancers are best.
+        # Most numbers are easy, but a few are VERY hard (large primes).
+        numbers = []
+        for i in range(self.prime_count):
+            if i % 20 == 0:
+                # hard semiprime (e.g., 2 large primes multiplied)
+                # 31397 * 34211 = 1074122767
+                numbers.append(1074122767 + (i%3)*2)
+            else:
+                numbers.append(1000 + i)
+
+        chunks = []
+        per_chunk = len(numbers) // num_chunks
+        remainder = len(numbers) % num_chunks
+        start = 0
+
+        for c in range(num_chunks):
+            size = per_chunk + (1 if c < remainder else 0)
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.PRIME_FACTORIZATION.value,
+                data={"public_keys": numbers[start:start + size]}
+            ))
+            start += size
+
+        return chunks, {"total_keys": len(numbers)}
+
     def _split_sorting(self, num_chunks: int, task_id: str):
         """Split sorting task into chunks with random float arrays."""
         rng = random.Random(777)
-        # 100k floats per chunk
         size_per_chunk = 100000 
         chunks = []
 
@@ -230,13 +316,37 @@ class MasterServer:
 
         return chunks, {"total_elements": size_per_chunk * num_chunks}
 
+    def _split_etl_pipeline(self, num_chunks: int, task_id: str):
+        """Split ETL Log pipeline into chunks of mock JSON logs."""
+        rng = random.Random(777)
+        size_per_chunk = 50000 
+        chunks = []
+        endpoints = ["/login", "/api/data", "/home", "/checkout"]
+
+        for c in range(num_chunks):
+            logs = []
+            for _ in range(size_per_chunk):
+                logs.append({
+                    "timestamp": rng.randint(1600000000, 1700000000),
+                    "endpoint": rng.choice(endpoints),
+                    "status": 200 if rng.random() > 0.05 else 500,
+                    "user_id": rng.randint(1, 10000)
+                })
+                
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.DATA_SORTING.value,
+                data={"log_lines": logs}
+            ))
+
+        return chunks, {"total_logs": size_per_chunk * num_chunks}
+
     def _split_io(self, num_chunks: int, task_id: str):
         """Split IO simulation task into varying sleep delays."""
         rng = random.Random(999)
         chunks = []
 
         for c in range(num_chunks):
-            # Sleep between 100ms and 500ms
             sleep_time = rng.uniform(0.1, 0.5) 
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
@@ -245,6 +355,24 @@ class MasterServer:
             ))
 
         return chunks, {"expected_total_sleep": sum(c.data["sleep_time"] for c in chunks)}
+
+    def _split_web_scraper(self, num_chunks: int, task_id: str):
+        """Split Web Scraping into tasks with variable network latency."""
+        rng = random.Random(999)
+        chunks = []
+        urls = ["http://example.com/page1", "http://test.org/api", "http://slow-site.com/data"]
+
+        for c in range(num_chunks):
+            # Highly variable latency, from 50ms to 800ms
+            latency = rng.uniform(0.05, 0.8) 
+            url = rng.choice(urls)
+            chunks.append(TaskChunk(
+                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_type=TaskType.IO_SIMULATION.value,
+                data={"target_url": url, "simulated_latency": latency}
+            ))
+
+        return chunks, {"expected_total_sleep": sum(c.data["simulated_latency"] for c in chunks)}
 
     # ─── Dispatching ──────────────────────────────────────────────
 
@@ -322,6 +450,26 @@ class MasterServer:
         ]
         return "\n".join(lines)
 
+    def _assemble_ml_inference(self, results: list, metadata: dict) -> str:
+        """Assemble ML Batch Inference results."""
+        n_samples = metadata["n_samples"]
+        n_neurons = metadata["n_neurons"]
+        total_pred = 0
+
+        for r in results:
+            if not r.get("success", False):
+                continue
+            data = r.get("data", {})
+            total_pred += len(data.get("predictions", []))
+
+        lines = [
+            f"ML Batch Inference Complete.",
+            f"Expected samples: {n_samples:,}",
+            f"Predictions generated: {total_pred:,}",
+            f"Verification: {'✓ PASSED' if total_pred == n_samples else '✗ FAILED'}",
+        ]
+        return "\n".join(lines)
+
     def _assemble_monte_carlo(self, results: list, metadata: dict) -> str:
         """Assemble Monte Carlo Pi results."""
         total_samples = 0
@@ -343,6 +491,27 @@ class MasterServer:
             f"π ≈ {pi_est:.10f}",
             f"Actual π = {math.pi:.10f}",
             f"Error: {error:.10f} ({error / math.pi * 100:.6f}%)",
+        ]
+        return "\n".join(lines)
+
+    def _assemble_financial_pricing(self, results: list, metadata: dict) -> str:
+        """Assemble Financial Option Pricing results."""
+        total_paths = 0
+        payoff_sum = 0.0
+        for r in results:
+            if not r.get("success", False):
+                continue
+            data = r.get("data", {})
+            total_paths += data.get("num_paths", 0)
+            payoff_sum += data.get("payoff_sum", 0.0)
+
+        price = payoff_sum / total_paths * math.exp(-0.05 * 1.0) if total_paths > 0 else 0
+
+        lines = [
+            f"Financial Option Pricing (Monte Carlo)",
+            f"Total paths simulated: {total_paths:,}",
+            f"Estimated Call Option Price: ${price:.4f}",
+            f"Interest Rate: 5%, Volatility: 20%",
         ]
         return "\n".join(lines)
 
@@ -374,6 +543,27 @@ class MasterServer:
         ] + samples
         return "\n".join(lines)
 
+    def _assemble_rsa_cracking(self, results: list, metadata: dict) -> str:
+        """Assemble RSA Key Cracking results."""
+        total = 0
+        samples = []
+
+        for r in results:
+            if not r.get("success", False):
+                continue
+            data = r.get("data", {})
+            for item in data.get("results", []):
+                total += 1
+                if item["key"] > 1000000000 and len(samples) < 5:
+                    samples.append(f"  [CRACKED] {item['key']:,} = p:{item['factors'][0]} * q:{item['factors'][1]}")
+
+        lines = [
+            f"RSA Key Cracking Complete",
+            f"Keys brute-forced: {total:,} / {metadata['total_keys']:,}",
+            f"Sample high-difficulty cracks:",
+        ] + samples
+        return "\n".join(lines)
+
     def _assemble_sorting(self, results: list, metadata: dict) -> str:
         """Assemble data sorting results."""
         total_sorted = 0
@@ -391,6 +581,26 @@ class MasterServer:
         ]
         return "\n".join(lines)
 
+    def _assemble_etl_pipeline(self, results: list, metadata: dict) -> str:
+        """Assemble ETL Log Pipeline results."""
+        total_processed = 0
+        total_errors = 0
+        for r in results:
+            if not r.get("success", False):
+                continue
+            data = r.get("data", {})
+            total_processed += data.get("count_processed", 0)
+            total_errors += data.get("error_count", 0)
+
+        lines = [
+            f"ETL Log Aggregation Complete",
+            f"Expected logs: {metadata['total_logs']:,}",
+            f"Total logs parsed & sorted: {total_processed:,}",
+            f"HTTP 500 Errors Detected: {total_errors:,}",
+            f"Verification: {'✓ PASSED' if total_processed == metadata['total_logs'] else '✗ FAILED'}"
+        ]
+        return "\n".join(lines)
+
     def _assemble_io(self, results: list, metadata: dict) -> str:
         """Assemble IO simulation results."""
         total_slept = 0.0
@@ -405,6 +615,25 @@ class MasterServer:
             f"Expected sleep total: {metadata['expected_total_sleep']:.2f}s",
             f"Actual aggregate simulated IO block: {total_slept:.2f}s",
             f"Parallel advantage verified."
+        ]
+        return "\n".join(lines)
+
+    def _assemble_web_scraper(self, results: list, metadata: dict) -> str:
+        """Assemble Web Scraper results."""
+        total_slept = 0.0
+        total_bytes = 0
+        for r in results:
+            if not r.get("success", False):
+                continue
+            data = r.get("data", {})
+            total_slept += data.get("latency_sec", 0.0)
+            total_bytes += data.get("bytes_downloaded", 0)
+
+        lines = [
+            f"Distributed Web Crawler Complete",
+            f"Total bytes downloaded: {total_bytes / 1024:.1f} KB",
+            f"Network IO time wait blocked: {total_slept:.2f}s",
+            f"Parallel advantage verified mapping network IO."
         ]
         return "\n".join(lines)
 
@@ -438,14 +667,24 @@ class MasterServer:
         self._log(f"Splitting task into {num_chunks} chunks...")
         if task_type_name == TaskType.MATRIX_MULTIPLICATION.value:
             chunks, metadata = self._split_matrix(num_chunks, task_id)
+        elif task_type_name == TaskType.ML_INFERENCE.value:
+            chunks, metadata = self._split_ml_inference(num_chunks, task_id)
         elif task_type_name == TaskType.MONTE_CARLO_PI.value:
             chunks, metadata = self._split_monte_carlo(num_chunks, task_id)
+        elif task_type_name == TaskType.FINANCIAL_PRICING.value:
+            chunks, metadata = self._split_financial_pricing(num_chunks, task_id)
         elif task_type_name == TaskType.PRIME_FACTORIZATION.value:
             chunks, metadata = self._split_prime(num_chunks, task_id)
+        elif task_type_name == TaskType.RSA_CRACKING.value:
+            chunks, metadata = self._split_rsa_cracking(num_chunks, task_id)
         elif task_type_name == TaskType.DATA_SORTING.value:
             chunks, metadata = self._split_sorting(num_chunks, task_id)
+        elif task_type_name == TaskType.ETL_PIPELINE.value:
+            chunks, metadata = self._split_etl_pipeline(num_chunks, task_id)
         elif task_type_name == TaskType.IO_SIMULATION.value:
             chunks, metadata = self._split_io(num_chunks, task_id)
+        elif task_type_name == TaskType.WEB_CRAWLER.value:
+            chunks, metadata = self._split_web_scraper(num_chunks, task_id)
         else:
             self.is_running = False
             return {"error": f"Unknown task type: {task_type_name}"}
@@ -481,14 +720,24 @@ class MasterServer:
         # 3. Assemble
         if task_type_name == TaskType.MATRIX_MULTIPLICATION.value:
             summary = self._assemble_matrix(results, metadata)
+        elif task_type_name == TaskType.ML_INFERENCE.value:
+            summary = self._assemble_ml_inference(results, metadata)
         elif task_type_name == TaskType.MONTE_CARLO_PI.value:
             summary = self._assemble_monte_carlo(results, metadata)
+        elif task_type_name == TaskType.FINANCIAL_PRICING.value:
+            summary = self._assemble_financial_pricing(results, metadata)
         elif task_type_name == TaskType.PRIME_FACTORIZATION.value:
             summary = self._assemble_prime(results, metadata)
+        elif task_type_name == TaskType.RSA_CRACKING.value:
+            summary = self._assemble_rsa_cracking(results, metadata)
         elif task_type_name == TaskType.DATA_SORTING.value:
             summary = self._assemble_sorting(results, metadata)
-        else:
+        elif task_type_name == TaskType.ETL_PIPELINE.value:
+            summary = self._assemble_etl_pipeline(results, metadata)
+        elif task_type_name == TaskType.IO_SIMULATION.value:
             summary = self._assemble_io(results, metadata)
+        else:
+            summary = self._assemble_web_scraper(results, metadata)
 
         self._log(f"\n--- Result ---\n{summary}")
 

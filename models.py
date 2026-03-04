@@ -11,11 +11,16 @@ from typing import Optional
 
 
 class TaskType(Enum):
-    MATRIX_MULTIPLICATION = "Matrix Multiplication"
-    MONTE_CARLO_PI = "Monte Carlo Pi Estimation"
-    PRIME_FACTORIZATION = "Prime Factorization"
-    DATA_SORTING = "Data Sorting"
-    IO_SIMULATION = "IO Simulation"
+    MATRIX_MULTIPLICATION = "Matrix Multiplication (Benchmark)"
+    ML_INFERENCE = "ML Batch Inference (Use Case)"
+    MONTE_CARLO_PI = "Monte Carlo Pi (Benchmark)"
+    FINANCIAL_PRICING = "Financial Option Pricing (Use Case)"
+    PRIME_FACTORIZATION = "Prime Factorization (Benchmark)"
+    RSA_CRACKING = "RSA Key Cracking (Use Case)"
+    DATA_SORTING = "Data Sorting (Benchmark)"
+    ETL_PIPELINE = "ETL Log Aggregation (Use Case)"
+    IO_SIMULATION = "IO Simulation (Benchmark)"
+    WEB_CRAWLER = "Distributed Web Crawler (Use Case)"
 
 
 @dataclass

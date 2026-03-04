@@ -69,7 +69,7 @@
                             <i class="fa-solid fa-play mr-2"></i> Run Single
                         </button>
                         <button id="btn-run-all" class="col-span-1 bg-purple-600 hover:bg-purple-500 text-white py-2 px-4 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center">
-                            <i class="fa-solid fa-forward-fast mr-2"></i> Run All 25
+                            <i class="fa-solid fa-forward-fast mr-2"></i> Run All 50
                         </button>
                     </div>
                 </div>
@@ -266,30 +266,46 @@
                 return;
             }
 
-            // Group results by Task Type
+            // Base mapping logic grouping the pairs
+            const pairMap = {
+                "Matrix Multiplication (Benchmark)": "Group 1: Deterministic Uniform Compute",
+                "ML Batch Inference (Use Case)": "Group 1: Deterministic Uniform Compute",
+                "Monte Carlo Pi (Benchmark)": "Group 2: Statistical Uniform Compute",
+                "Financial Option Pricing (Use Case)": "Group 2: Statistical Uniform Compute",
+                "Prime Factorization (Benchmark)": "Group 3: Variable Compute",
+                "RSA Key Cracking (Use Case)": "Group 3: Variable Compute",
+                "Data Sorting (Benchmark)": "Group 4: Memory-Heavy Processing",
+                "ETL Log Aggregation (Use Case)": "Group 4: Memory-Heavy Processing",
+                "IO Simulation (Benchmark)": "Group 5: High Network Jitter",
+                "Distributed Web Crawler (Use Case)": "Group 5: High Network Jitter"
+            };
+
+            const expectedWinners = {
+                "Group 1: Deterministic Uniform Compute": "Expected Winner: Round Robin",
+                "Group 2: Statistical Uniform Compute": "Expected Winner: Round Robin / WRR",
+                "Group 3: Variable Compute": "Expected Winner: Least Connections",
+                "Group 4: Memory-Heavy Processing": "Expected Winner: Least Connections",
+                "Group 5: High Network Jitter": "Expected Winner: Least Response Time"
+            };
+
+            // Group results
             const grouped = {};
             results.forEach(r => {
-                if (!grouped[r.task_type]) grouped[r.task_type] = [];
-                grouped[r.task_type].push(r);
+                const groupName = pairMap[r.task_type] || "Other Tasks";
+                if (!grouped[groupName]) grouped[groupName] = [];
+                grouped[groupName].push(r);
             });
-
-            // Recommendations Map
-            const recommendations = {
-                "Matrix Multiplication": "Compute-Heavy, Machine Learning, 3D Rendering.",
-                "Monte Carlo Pi Estimation": "Statistical Simulations, Financial Modeling, Probability.",
-                "Prime Factorization": "Cryptography, High-Density CPU Workloads.",
-                "Data Sorting": "Database Indexing, Memory-Heavy ETL Pipelines.",
-                "IO Simulation": "Web Scraping, Disk File Serving, API Fetching."
-            };
 
             let htmlString = "";
 
-            for (const [taskType, taskResults] of Object.entries(grouped)) {
-                // Find Category Winners for this Task Type
-                const minTime = Math.min(...taskResults.map(r => r.total_time_ms));
-                const maxThroughput = Math.max(...taskResults.map(r => r.throughput));
-                const minCpuList = taskResults.map(r => r.max_node_utilization);
-                const minCpu = Math.min(...minCpuList);
+            for (const [groupName, groupResults] of Object.entries(grouped)) {
+                // Find Category Winners for this Group overall? 
+                // Wait, it might be better to find minTime per task inside the group.
+                const taskSubgroups = {};
+                groupResults.forEach(r => {
+                    if(!taskSubgroups[r.task_type]) taskSubgroups[r.task_type] = [];
+                    taskSubgroups[r.task_type].push(r);
+                });
 
                 // Add Subheader for Benchmark Type
                 htmlString += `
@@ -297,48 +313,57 @@
                         <td colspan="6" class="py-3 px-4">
                             <div class="flex flex-col md:flex-row md:items-center justify-between">
                                 <span class="font-bold text-lg text-emerald-400">
-                                    <i class="fa-solid fa-layer-group mr-2"></i>${taskType}
+                                    <i class="fa-solid fa-layer-group mr-2"></i>${groupName}
                                 </span>
                                 <span class="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full uppercase mt-2 md:mt-0 tracking-widest border border-slate-700 shadow-inner">
-                                    <i class="fa-solid fa-lightbulb text-amber-500 mr-2"></i> Use Case: ${recommendations[taskType] || 'General Workload'}
+                                    <i class="fa-solid fa-lightbulb text-amber-500 mr-2"></i> ${expectedWinners[groupName] || 'General Workload'}
                                 </span>
                             </div>
                         </td>
                     </tr>
                 `;
 
-                // Add Rows for this Benchmark Type
-                taskResults.forEach(r => {
-                    const isTimeWinner = r.total_time_ms === minTime;
-                    const isThroughputWinner = r.throughput === maxThroughput;
-                    const isCpuWinner = r.max_node_utilization === minCpu;
+                for (const [taskType, taskResults] of Object.entries(taskSubgroups)) {
+                    const minTime = Math.min(...taskResults.map(r => r.total_time_ms));
+                    const maxThroughput = Math.max(...taskResults.map(r => r.throughput));
+                    const minCpuList = taskResults.map(r => r.max_node_utilization);
+                    const minCpu = Math.min(...minCpuList);
 
-                    htmlString += `
-                    <tr class="border-b border-slate-700/30 hover:bg-slate-800/40 transition">
-                        <td class="py-3 px-4 pl-8 text-slate-400 text-xs uppercase tracking-wider">${taskType.split(' ')[0]}</td>
-                        <td class="py-3 px-2 text-blue-300 font-medium">${r.algorithm_name}</td>
-                        <td class="py-3 px-2 ${isTimeWinner ? 'text-emerald-400 font-bold bg-emerald-900/20 rounded' : 'text-slate-300'}">
-                            ${r.total_time_ms.toLocaleString()}
-                            ${isTimeWinner ? ' <span class="text-[10px] ml-1 uppercase bg-emerald-600/30 px-1 py-0.5 rounded text-emerald-300">Fastest</span>' : ''}
-                        </td>
-                        <td class="py-3 px-2 font-mono text-xs ${isThroughputWinner ? 'text-amber-300 font-bold bg-amber-900/20 rounded' : 'text-slate-400'}">
-                            ${r.throughput.toFixed(1)}/s
-                            ${isThroughputWinner ? ' <span class="text-[10px] ml-1 uppercase bg-amber-600/30 px-1 py-0.5 rounded text-amber-300">Highest</span>' : ''}
-                        </td>
-                        <td class="py-3 px-2 text-slate-400 text-xs">${r.load_std_dev.toFixed(2)}</td>
-                        <td class="py-3 px-2 ${isCpuWinner ? 'bg-blue-900/20 rounded' : ''}">
-                            <div class="flex items-center">
-                                <div class="w-16 bg-slate-700 h-2 rounded mr-2 overflow-hidden shadow-inner">
-                                    <div class="${isCpuWinner ? 'bg-cyan-400' : 'bg-blue-500'} h-full transition-all" style="width: ${r.max_node_utilization}%"></div>
+                    taskResults.forEach(r => {
+                        const isTimeWinner = r.total_time_ms === minTime;
+                        const isThroughputWinner = r.throughput === maxThroughput;
+                        const isCpuWinner = r.max_node_utilization === minCpu;
+                        
+                        // Extract just the first acronym to save space on mobile UI
+                        const shortName = taskType.split(' ')[0];
+
+                        htmlString += `
+                        <tr class="border-b border-slate-700/30 hover:bg-slate-800/40 transition">
+                            <td class="py-3 px-4 pl-4 text-slate-300 text-xs tracking-wider" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${taskType}">${taskType}</td>
+                            <td class="py-3 px-2 text-blue-300 font-medium">${r.algorithm_name}</td>
+                            <td class="py-3 px-2 ${isTimeWinner ? 'text-emerald-400 font-bold bg-emerald-900/20 rounded' : 'text-slate-300'}">
+                                ${r.total_time_ms.toLocaleString()}
+                                ${isTimeWinner ? ' <span class="text-[10px] ml-1 uppercase bg-emerald-600/30 px-1 py-0.5 rounded text-emerald-300">Fastest</span>' : ''}
+                            </td>
+                            <td class="py-3 px-2 font-mono text-xs ${isThroughputWinner ? 'text-amber-300 font-bold bg-amber-900/20 rounded' : 'text-slate-400'}">
+                                ${r.throughput.toFixed(1)}/s
+                                ${isThroughputWinner ? ' <span class="text-[10px] ml-1 uppercase bg-amber-600/30 px-1 py-0.5 rounded text-amber-300">Highest</span>' : ''}
+                            </td>
+                            <td class="py-3 px-2 text-slate-400 text-xs">${r.load_std_dev.toFixed(2)}</td>
+                            <td class="py-3 px-2 ${isCpuWinner ? 'bg-blue-900/20 rounded' : ''}">
+                                <div class="flex items-center">
+                                    <div class="w-16 bg-slate-700 h-2 rounded mr-2 overflow-hidden shadow-inner hidden lg:block">
+                                        <div class="${isCpuWinner ? 'bg-cyan-400' : 'bg-blue-500'} h-full transition-all" style="width: ${r.max_node_utilization}%"></div>
+                                    </div>
+                                    <span class="text-xs ${isCpuWinner ? 'text-cyan-300 font-bold' : 'text-slate-400'}">
+                                        ${r.max_node_utilization.toFixed(0)}%
+                                        ${isCpuWinner ? ' <span class="text-[10px] ml-1 uppercase bg-cyan-600/30 px-1 py-0.5 rounded text-cyan-300">Lowest Load</span>' : ''}
+                                    </span>
                                 </div>
-                                <span class="text-xs ${isCpuWinner ? 'text-cyan-300 font-bold' : 'text-slate-400'}">
-                                    ${r.max_node_utilization.toFixed(0)}%
-                                    ${isCpuWinner ? ' <span class="text-[10px] ml-1 uppercase bg-cyan-600/30 px-1 py-0.5 rounded text-cyan-300">Lowest Load</span>' : ''}
-                                </span>
-                            </div>
-                        </td>
-                    </tr>`;
-                });
+                            </td>
+                        </tr>`;
+                    });
+                }
             }
 
             elResults.innerHTML = htmlString;

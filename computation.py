@@ -19,16 +19,26 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
     """Route a task to the correct computation engine and return results."""
     start = time.time()
 
-    if task_type == "Matrix Multiplication":
+    if task_type == "Matrix Multiplication (Benchmark)":
         result_data = _compute_matrix(data)
-    elif task_type == "Monte Carlo Pi Estimation":
+    elif task_type == "ML Batch Inference (Use Case)":
+        result_data = _compute_ml_inference(data)
+    elif task_type == "Monte Carlo Pi (Benchmark)":
         result_data = _compute_monte_carlo(data)
-    elif task_type == "Prime Factorization":
+    elif task_type == "Financial Option Pricing (Use Case)":
+        result_data = _compute_financial_pricing(data)
+    elif task_type == "Prime Factorization (Benchmark)":
         result_data = _compute_prime_factorization(data)
-    elif task_type == "Data Sorting":
+    elif task_type == "RSA Key Cracking (Use Case)":
+        result_data = _compute_rsa_cracking(data)
+    elif task_type == "Data Sorting (Benchmark)":
         result_data = _compute_sorting(data)
-    elif task_type == "IO Simulation":
+    elif task_type == "ETL Log Aggregation (Use Case)":
+        result_data = _compute_etl_pipeline(data)
+    elif task_type == "IO Simulation (Benchmark)":
         result_data = _compute_io_sim(data)
+    elif task_type == "Distributed Web Crawler (Use Case)":
+        result_data = _compute_web_scraper(data)
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 
@@ -39,93 +49,134 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
     }
 
 
-# ─── Matrix Multiplication ────────────────────────────────────────────
-
+# ─── Matrix Multiplication (Benchmark) ──────────────────────────────
 def _compute_matrix(data: dict) -> dict:
-    """
-    Multiply a slab of rows from matrix A with full matrix B.
-    Input:  rows_a (2D list, subset of rows), mat_b (full 2D list), start_row, end_row, n
-    Output: result_rows (2D list), start_row, end_row, n
-    """
     rows_a = data["rows_a"]
     mat_b = data["mat_b"]
     start_row = data["start_row"]
     end_row = data["end_row"]
     n = data["n"]
-
     num_rows = end_row - start_row
     result_rows = []
-
     for i in range(num_rows):
         row = []
         for j in range(n):
-            s = 0.0
-            for k in range(n):
-                s += rows_a[i][k] * mat_b[k][j]
+            s = sum(rows_a[i][k] * mat_b[k][j] for k in range(n))
             row.append(round(s, 6))
         result_rows.append(row)
+    return {"result_rows": result_rows, "start_row": start_row, "end_row": end_row, "n": n}
+
+# ─── ML Batch Inference (Use Case) ────────────────────────────────────
+def _compute_ml_inference(data: dict) -> dict:
+    """
+    Simulate a batch inference pass through a Neural Network layer with ReLU.
+    Input:  batch_x (2D list), weights (2D list), bias (1D list), start_idx, end_idx
+    Output: predictions (2D list), start_idx, end_idx
+    """
+    batch_x = data["batch_x"]
+    weights = data["weights"]
+    bias = data["bias"]
+    start_idx = data["start_idx"]
+    end_idx = data["end_idx"]
+    n_features = len(weights)
+    n_neurons = len(weights[0])
+
+    num_samples = end_idx - start_idx
+    predictions = []
+
+    for i in range(num_samples):
+        row = []
+        for j in range(n_neurons):
+            s = 0.0
+            for k in range(n_features):
+                s += batch_x[i][k] * weights[k][j]
+            s += bias[j]
+            # ReLU Activation
+            row.append(max(0.0, round(s, 6)))
+        predictions.append(row)
 
     return {
-        "result_rows": result_rows,
-        "start_row": start_row,
-        "end_row": end_row,
-        "n": n,
+        "predictions": predictions,
+        "start_idx": start_idx,
+        "end_idx": end_idx,
     }
 
 
-# ─── Monte Carlo Pi Estimation ────────────────────────────────────────
-
+# ─── Monte Carlo Pi (Benchmark) ──────────────────────────────────
 def _compute_monte_carlo(data: dict) -> dict:
-    """
-    Estimate Pi using Monte Carlo random sampling.
-    Input:  num_samples (int), seed (int)
-    Output: num_samples (int), inside_count (int)
-    """
     num_samples = data["num_samples"]
     seed = data.get("seed", None)
+    rng = random.Random(seed)
+    inside = sum(1 for _ in range(num_samples) if (rng.random()**2 + rng.random()**2) <= 1.0)
+    return {"num_samples": num_samples, "inside_count": inside}
+
+# ─── Financial Option Pricing (Use Case) ─────────────────────────
+def _compute_financial_pricing(data: dict) -> dict:
+    """
+    Estimate European Call Option price using Black-Scholes Monte Carlo simulation.
+    Input:  num_paths (int), S0, K, T, r, sigma, seed
+    """
+    num_paths = data["num_paths"]
+    S0 = data["S0"]
+    K = data["K"]
+    T = data["T"]
+    r = data["r"]
+    sigma = data["sigma"]
+    seed = data.get("seed", 42)
 
     rng = random.Random(seed)
-    inside = 0
+    payoff_sum = 0.0
 
-    for _ in range(num_samples):
-        x = rng.random()
-        y = rng.random()
-        if x * x + y * y <= 1.0:
-            inside += 1
+    # Precompute drift
+    drift = (r - 0.5 * sigma * sigma) * T
+    vol = sigma * math.sqrt(T)
+
+    for _ in range(num_paths):
+        # Approximate standard normal using Box-Muller or just sum of uniform
+        # Let's use simple normal approximation for speed, or random.gauss if supported
+        Z = rng.gauss(0, 1)
+        ST = S0 * math.exp(drift + vol * Z)
+        payoff = max(ST - K, 0)
+        payoff_sum += payoff
 
     return {
-        "num_samples": num_samples,
-        "inside_count": inside,
+        "num_paths": num_paths,
+        "payoff_sum": payoff_sum,
     }
 
 
-# ─── Prime Factorization ──────────────────────────────────────────────
-
+# ─── Prime Factorization (Benchmark) ─────────────────────────────
 def _compute_prime_factorization(data: dict) -> dict:
-    """
-    Factorize a batch of numbers using trial division.
-    Input:  numbers (list of ints)
-    Output: results (list of {number, factors})
-    """
     numbers = data["numbers"]
+    results = [{"number": num, "factors": _crack_semiprime(abs(num))} for num in numbers]
+    return {"results": results}
+
+# ─── RSA Key Cracking (Use Case) ─────────────────────────────────
+def _compute_rsa_cracking(data: dict) -> dict:
+    """
+    Factorize a batch of large numbers (semiprimes represent RSA keys).
+    Input:  public_keys (list of ints)
+    """
+    keys = data["public_keys"]
     results = []
 
-    for num in numbers:
-        factors = _trial_division(abs(num))
+    for key in keys:
+        factors = _crack_semiprime(abs(key))
         results.append({
-            "number": num,
+            "key": key,
             "factors": factors,
         })
 
     return {"results": results}
 
 
-def _trial_division(n: int) -> list:
-    """Factorize n into prime factors using trial division."""
+def _crack_semiprime(n: int) -> list:
+    """Trial division optimized to find two large prime factors of n."""
     if n < 2:
         return [n]
     factors = []
     d = 2
+    # Heavy CPU bottleneck loop (simulating brute force)
     while d * d <= n:
         while n % d == 0:
             factors.append(d)
@@ -136,14 +187,8 @@ def _trial_division(n: int) -> list:
     return factors
 
 
-# ─── Data Sorting ─────────────────────────────────────────────────────
-
+# ─── Data Sorting (Benchmark) ────────────────────────────────────
 def _compute_sorting(data: dict) -> dict:
-    """
-    Sort a large list of numbers.
-    Input:  array (list of floats)
-    Output: sorted array (list of floats)
-    """
     arr = data["array"]
     sorted_arr = sorted(arr)
     return {
@@ -152,17 +197,54 @@ def _compute_sorting(data: dict) -> dict:
         "last_element": sorted_arr[-1] if sorted_arr else None,
     }
 
+# ─── ETL Log Aggregation (Use Case) ──────────────────────────────
+def _compute_etl_pipeline(data: dict) -> dict:
+    """
+    Parse a large batch of simulated server logs, extract status codes, and sort by timestamp.
+    Input:  log_lines (list of dicts)
+    """
+    logs = data["log_lines"]
+    
+    # Simulate parsing & extraction
+    parsed = []
+    error_count = 0
+    for log in logs:
+        # Heavily memory bound processing
+        if log.get("status") >= 400:
+            error_count += 1
+        parsed.append(log)
 
-# ─── IO Simulation ────────────────────────────────────────────────────
+    # Sort operations are memory intensive for large objects
+    parsed.sort(key=lambda x: x["timestamp"])
 
+    return {
+        "count_processed": len(parsed),
+        "error_count": error_count,
+        "earliest_ts": parsed[0]["timestamp"] if parsed else None,
+        "latest_ts": parsed[-1]["timestamp"] if parsed else None,
+    }
+
+
+# ─── IO Simulation (Benchmark) ───────────────────────────────────
 def _compute_io_sim(data: dict) -> dict:
-    """
-    Simulate I/O bound tasks by sleeping.
-    Input:  sleep_time (float)
-    Output: slept_for (float)
-    """
     sleep_time = data["sleep_time"]
     time.sleep(sleep_time)
+    return {"slept_for": sleep_time}
+
+# ─── Distributed Web Crawler (Use Case) ──────────────────────────
+def _compute_web_scraper(data: dict) -> dict:
+    """
+    Simulate fetching public APIs or large web pages where latency varies wildly due to network conditions.
+    """
+    target_url = data.get("target_url", "http://example.com")
+    simulated_latency = data.get("simulated_latency", 0.5)
+    
+    # We use sleep to avoid actually hammering an external server to death in a benchmark.
+    # It perfectly mimics thread-blocking IO wait.
+    time.sleep(simulated_latency)
+    
     return {
-        "slept_for": sleep_time
+        "url_scraped": target_url,
+        "bytes_downloaded": int(random.Random().uniform(1024, 50000)), # mock data size
+        "latency_sec": simulated_latency
     }
