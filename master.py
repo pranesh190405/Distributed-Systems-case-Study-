@@ -86,6 +86,11 @@ class MasterServer:
         self.prime_max = config.getint("tasks", "prime_max", fallback=999999999)
         self.chunks_count = config.getint("tasks", "chunks_count", fallback=12)
 
+        # Configurable use-case parameters (can be changed from dashboard)
+        self.image_blur_count = 8          # number of images to generate
+        self.image_blur_size = 512         # image dimension (NxN)
+        self.crypto_difficulty = 4         # PoW difficulty (number of leading zeros)
+
         # Network timeouts
         self.connect_timeout = config.getfloat("network", "connect_timeout_ms", fallback=10000) / 1000.0
         self.read_timeout = config.getfloat("network", "read_timeout_ms", fallback=120000) / 1000.0
@@ -335,17 +340,17 @@ class MasterServer:
 
 
     def _split_image_blur(self, num_chunks: int, task_id: str):
-        """Split Image Blur task into chunks with varying image sizes."""
+        """Split Image Blur task into chunks using configured image count & size."""
         from PIL import Image
         rng = random.Random(42)
-        sizes = [256, 512, 1024, 2048, 4096]
+        sz = self.image_blur_size
+        actual_count = self.image_blur_count
+        label = f"{sz}x{sz}"
         chunks = []
 
-        for c in range(num_chunks):
-            # Pick a random size to simulate highly variable workloads
-            sz = rng.choice(sizes)
-            label = f"{sz}x{sz}"
+        self._log(f"  Image Blur config: {actual_count} images, {label} pixels each")
 
+        for c in range(actual_count):
             # Generate a dummy RGB image in memory
             img = Image.new("RGB", (sz, sz))
             pixels = img.load()
@@ -367,39 +372,28 @@ class MasterServer:
             b64 = base64.b64encode(buf.getvalue()).decode("ascii")
 
             chunks.append(TaskChunk(
-                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
+                task_id=task_id, chunk_id=c, total_chunks=actual_count,
                 task_type=TaskType.IMAGE_BLUR.value,
                 data={"image_b64": b64, "image_size": label, "task_id": task_id, "chunk_id": c}
             ))
             self._log(f"  Generated chunk {c}: {label} ({len(b64) // 1024} KB payload)")
 
-        return chunks, {"total_images": num_chunks}
+        return chunks, {"total_images": actual_count}
 
     def _split_crypto_hash(self, num_chunks: int, task_id: str):
-        """Split Crypto Proof-of-Work into tasks with mixed difficulty."""
+        """Split Crypto Proof-of-Work into tasks with user-selected difficulty."""
         import string
         rng = random.Random(42)
         chunks = []
+        diff = self.crypto_difficulty
 
-        # Mix of easy and hard tasks to simulate variable CPU workloads
-        difficulties = []
-        for c in range(num_chunks):
-            if c % 5 == 0:
-                # Every 5th chunk is hard (difficulty 5 or 6)
-                difficulties.append(rng.choice([5, 6]))
-            elif c % 3 == 0:
-                # Some medium tasks
-                difficulties.append(4)
-            else:
-                # Majority are easy
-                difficulties.append(rng.choice([3, 4]))
+        self._log(f"  Crypto PoW config: {num_chunks} chunks, uniform difficulty={diff}")
 
         for c in range(num_chunks):
             # Generate a random base string for each task
             base_string = "".join(rng.choices(
                 string.ascii_letters + string.digits, k=32
             ))
-            diff = difficulties[c]
 
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
@@ -414,7 +408,7 @@ class MasterServer:
 
         return chunks, {
             "total_tasks": num_chunks,
-            "difficulty_distribution": {d: difficulties.count(d) for d in sorted(set(difficulties))},
+            "difficulty": diff,
         }
 
     def _split_log_analysis(self, num_chunks: int, task_id: str):
@@ -1020,6 +1014,9 @@ def api_status():
             "monte_carlo_samples": master.monte_carlo_samples,
             "prime_count": master.prime_count,
             "chunks_count": master.chunks_count,
+            "image_blur_count": master.image_blur_count,
+            "image_blur_size": master.image_blur_size,
+            "crypto_difficulty": master.crypto_difficulty,
         },
     })
 
@@ -1136,6 +1133,40 @@ def api_add_worker():
     master._check_worker(new_worker)
     master._log(f"Manually added worker: {worker_id} (alive={new_worker.alive})")
     return jsonify({"message": f"Worker {worker_id} added", "alive": new_worker.alive})
+
+
+@app.route("/api/update_config", methods=["POST"])
+def api_update_config():
+    """Update configurable parameters for use cases."""
+    data = request.json
+    if "image_blur_count" in data:
+        master.image_blur_count = max(1, min(50, int(data["image_blur_count"])))
+    if "image_blur_size" in data:
+        allowed = [128, 256, 512, 1024, 2048, 4096]
+        val = int(data["image_blur_size"])
+        if val in allowed:
+            master.image_blur_size = val
+    if "crypto_difficulty" in data:
+        master.crypto_difficulty = max(1, min(7, int(data["crypto_difficulty"])))
+    master._log(f"Config updated: blur={master.image_blur_count}x{master.image_blur_size}, crypto_diff={master.crypto_difficulty}")
+    return jsonify({"message": "Config updated"})
+
+
+@app.route("/api/set_worker_weight", methods=["POST"])
+def api_set_worker_weight():
+    """Set the weight for a specific worker (used by WRR)."""
+    data = request.json
+    worker_id = data.get("worker_id")
+    weight = data.get("weight")
+    if not worker_id or weight is None:
+        return jsonify({"error": "Missing worker_id or weight"}), 400
+    weight = max(1, min(10, int(weight)))
+    for w in master.workers:
+        if w.id == worker_id:
+            w.weight = weight
+            master._log(f"Worker {worker_id} weight set to {weight}")
+            return jsonify({"message": f"Weight for {worker_id} set to {weight}"})
+    return jsonify({"error": f"Worker {worker_id} not found"}), 404
 
 
 @app.route("/api/comparison")

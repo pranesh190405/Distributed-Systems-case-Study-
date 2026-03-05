@@ -1,32 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distributed Computing Dashboard</title>
-    <!-- Tailwind CSS for sleek modern design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .card { transition: transform 0.2s, box-shadow 0.2s; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
 
-        /* Tab styles */
-        .tab-btn { cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; font-weight: 600; transition: all 0.2s; }
-        .tab-btn.active { background: rgba(30, 41, 59, 0.9); color: #38bdf8; border-bottom: 2px solid #38bdf8; }
-        .tab-btn:not(.active) { background: rgba(15, 23, 42, 0.5); color: #64748b; }
-        .tab-btn:not(.active):hover { color: #94a3b8; }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .tab-btn {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: rgba(30, 41, 59, 0.9);
+            color: #38bdf8;
+            border-bottom: 2px solid #38bdf8;
+        }
+
+        .tab-btn:not(.active) {
+            background: rgba(15, 23, 42, 0.5);
+            color: #64748b;
+        }
+
+        .tab-btn:not(.active):hover {
+            color: #94a3b8;
+        }
+
+        .input-sm {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            padding: 0.375rem 0.5rem;
+            color: #f8fafc;
+            font-size: 0.75rem;
+        }
+
+        .input-sm:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #38bdf8;
+        }
     </style>
 </head>
+
 <body class="min-h-screen flex flex-col p-4 md:p-8">
 
     <!-- Header -->
@@ -38,31 +96,17 @@
             <p class="text-slate-400 mt-1">Real-time monitoring and load balancing comparison</p>
         </div>
         <div class="mt-4 md:mt-0 flex items-center space-x-4">
-            <div id="master-status" class="px-4 py-2 rounded-full text-sm font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            <div id="master-status"
+                class="px-4 py-2 rounded-full text-sm font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30">
                 <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Checking status...
             </div>
         </div>
     </header>
 
     <div class="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         <!-- Left Column: Controls & Workers -->
         <div class="lg:col-span-1 flex flex-col space-y-6">
-
-            <!-- Add Worker Panel -->
-            <div class="glass rounded-xl p-6 shadow-lg">
-                <h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-slate-700 pb-2">
-                    <i class="fa-solid fa-plug mr-2"></i> Connect Worker
-                </h2>
-                <div class="flex space-x-2">
-                    <input id="worker-address" type="text" placeholder="IP:PORT  (e.g. 192.168.1.5:5001)"
-                           class="flex-grow bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition placeholder-slate-500">
-                    <button id="btn-add-worker" class="bg-cyan-600 hover:bg-cyan-500 text-white py-2 px-4 rounded-lg font-medium transition shadow-lg shadow-cyan-900/50 text-sm flex items-center">
-                        <i class="fa-solid fa-plus mr-1"></i> Connect
-                    </button>
-                </div>
-                <p id="worker-add-msg" class="text-xs mt-2 text-slate-500 hidden"></p>
-            </div>
 
             <!-- Benchmarks Panel -->
             <div class="glass rounded-xl p-6 shadow-lg">
@@ -72,17 +116,21 @@
                 <div class="space-y-3">
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-1">Select Benchmark</label>
-                        <select id="benchmark-select" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"></select>
+                        <select id="benchmark-select"
+                            class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"></select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <button id="btn-run-bench-single" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-emerald-900/50 flex items-center justify-center text-sm">
+                        <button id="btn-run-bench-single"
+                            class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-emerald-900/50 flex items-center justify-center text-sm">
                             <i class="fa-solid fa-play mr-1"></i> Run Selected
                         </button>
-                        <button id="btn-run-bench-all" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-emerald-900/50 flex items-center justify-center text-sm">
+                        <button id="btn-run-bench-all"
+                            class="bg-emerald-700 hover:bg-emerald-600 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-emerald-900/50 flex items-center justify-center text-sm">
                             <i class="fa-solid fa-forward-fast mr-1"></i> Run All
                         </button>
                     </div>
-                    <p class="text-xs text-slate-500"><i class="fa-solid fa-info-circle mr-1"></i>"Run Selected" runs all 5 algorithms for the chosen benchmark. "Run All" runs every benchmark × every algorithm.</p>
+                    <p class="text-xs text-slate-500"><i class="fa-solid fa-info-circle mr-1"></i>"Run Selected" runs
+                        all 5 algorithms for the chosen benchmark. "Run All" runs every benchmark × every algorithm.</p>
                 </div>
             </div>
 
@@ -94,34 +142,103 @@
                 <div class="space-y-3">
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-1">Select Use Case</label>
-                        <select id="usecase-select" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"></select>
+                        <select id="usecase-select"
+                            class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"></select>
                     </div>
+
+                    <!-- Image Blur Options (shown when Image Blur selected) -->
+                    <div id="image-blur-opts"
+                        class="hidden space-y-2 p-3 bg-slate-800/60 rounded-lg border border-slate-700">
+                        <p class="text-xs font-bold text-pink-400 uppercase tracking-wide"><i
+                                class="fa-solid fa-image mr-1"></i> Image Blur Settings</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-0.5">No. of Images</label>
+                                <input id="img-count" type="number" min="1" max="50" value="8" class="w-full input-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-0.5">Dimensions</label>
+                                <select id="img-size" class="w-full input-sm">
+                                    <option value="128">128 × 128</option>
+                                    <option value="256">256 × 256</option>
+                                    <option value="512" selected>512 × 512</option>
+                                    <option value="1024">1024 × 1024</option>
+                                    <option value="2048">2048 × 2048</option>
+                                    <option value="4096">4096 × 4096</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crypto PoW Options (shown when Crypto PoW selected) -->
+                    <div id="crypto-opts"
+                        class="hidden space-y-2 p-3 bg-slate-800/60 rounded-lg border border-slate-700">
+                        <p class="text-xs font-bold text-amber-400 uppercase tracking-wide"><i
+                                class="fa-solid fa-lock mr-1"></i> Proof-of-Work Settings</p>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-0.5">Difficulty</label>
+                            <select id="crypto-diff" class="w-full input-sm">
+                                <option value="1">1 — Trivial (instant)</option>
+                                <option value="2">2 — Easy (~ms)</option>
+                                <option value="3">3 — Medium (~100ms)</option>
+                                <option value="4" selected>4 — Hard (~seconds)</option>
+                                <option value="5">5 — Very Hard (~10s+)</option>
+                                <option value="6">6 — Extreme (~minutes)</option>
+                                <option value="7">7 — Max (~long time)</option>
+                            </select>
+                        </div>
+                        <p class="text-[10px] text-slate-500 leading-tight"><i
+                                class="fa-solid fa-circle-info mr-1"></i>Difficulty = number of leading zeros required
+                            in the SHA-256 hash. Each +1 doubles the average work. Difficulty ≥5 will take significantly
+                            longer.</p>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-3">
-                        <button id="btn-run-uc-single" class="bg-purple-600 hover:bg-purple-500 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center text-sm">
+                        <button id="btn-run-uc-single"
+                            class="bg-purple-600 hover:bg-purple-500 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center text-sm">
                             <i class="fa-solid fa-play mr-1"></i> Run Selected
                         </button>
-                        <button id="btn-run-uc-all" class="bg-purple-700 hover:bg-purple-600 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center text-sm">
+                        <button id="btn-run-uc-all"
+                            class="bg-purple-700 hover:bg-purple-600 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center text-sm">
                             <i class="fa-solid fa-forward-fast mr-1"></i> Run All
                         </button>
                     </div>
-                    <p class="text-xs text-slate-500"><i class="fa-solid fa-info-circle mr-1"></i>"Run Selected" runs all 5 algorithms for the chosen use case. "Run All" runs every use case × every algorithm.</p>
+                    <p class="text-xs text-slate-500"><i class="fa-solid fa-info-circle mr-1"></i>"Run Selected" runs
+                        all 5 algorithms for the chosen use case. "Run All" runs every use case × every algorithm.</p>
                 </div>
             </div>
-            
+
+            <!-- Connect Worker Panel -->
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-slate-700 pb-2">
+                    <i class="fa-solid fa-plug mr-2"></i> Connect Worker
+                </h2>
+                <div class="flex space-x-2">
+                    <input id="worker-address" type="text" placeholder="IP:PORT  (e.g. 192.168.1.5:5001)"
+                        class="flex-grow bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition placeholder-slate-500">
+                    <button id="btn-add-worker"
+                        class="bg-cyan-600 hover:bg-cyan-500 text-white py-2 px-4 rounded-lg font-medium transition shadow-lg shadow-cyan-900/50 text-sm flex items-center">
+                        <i class="fa-solid fa-plus mr-1"></i> Connect
+                    </button>
+                </div>
+                <p id="worker-add-msg" class="text-xs mt-2 text-slate-500 hidden"></p>
+            </div>
+
             <!-- Worker Nodes Panel -->
             <div class="glass rounded-xl p-6 shadow-lg flex-grow flex flex-col">
                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                     <h2 class="text-xl font-semibold text-blue-400">
                         <i class="fa-solid fa-server mr-2"></i> Worker Cluster
                     </h2>
-                    <span id="worker-count" class="bg-blue-600/30 text-blue-300 text-xs py-1 px-2 rounded-full font-bold">0 Online</span>
+                    <span id="worker-count"
+                        class="bg-blue-600/30 text-blue-300 text-xs py-1 px-2 rounded-full font-bold">0 Online</span>
                 </div>
-                
                 <div id="workers-container" class="space-y-3 overflow-y-auto max-h-[400px] flex-grow pr-2">
-                    <div class="text-center text-slate-500 py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</div>
+                    <div class="text-center text-slate-500 py-4"><i class="fa-solid fa-circle-notch fa-spin"></i>
+                        Loading...</div>
                 </div>
             </div>
-            
+
         </div>
 
         <!-- Right Column: Results & Analytics -->
@@ -130,17 +247,20 @@
             <!-- Results Tabs -->
             <div class="glass rounded-xl shadow-lg overflow-hidden">
                 <div class="flex border-b border-slate-700 px-4 pt-4">
-                    <button class="tab-btn active" data-tab="benchmarks-tab"><i class="fa-solid fa-gauge-high mr-1"></i> Benchmark Results</button>
-                    <button class="tab-btn ml-2" data-tab="usecases-tab"><i class="fa-solid fa-flask mr-1"></i> Use Case Results</button>
+                    <button class="tab-btn active" data-tab="benchmarks-tab"><i class="fa-solid fa-gauge-high mr-1"></i>
+                        Benchmark Results</button>
+                    <button class="tab-btn ml-2" data-tab="usecases-tab"><i class="fa-solid fa-flask mr-1"></i> Use Case
+                        Results</button>
                 </div>
 
                 <!-- Benchmark Results Table -->
                 <div id="benchmarks-tab" class="p-6 tab-content">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-emerald-400">
-                            <i class="fa-solid fa-chart-line mr-2"></i> Benchmark Experiment Results
-                        </h2>
-                        <button class="btn-clear text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">Clear History</button>
+                        <h2 class="text-lg font-semibold text-emerald-400"><i class="fa-solid fa-chart-line mr-2"></i>
+                            Benchmark Experiment Results</h2>
+                        <button
+                            class="btn-clear text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">Clear
+                            History</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -155,7 +275,10 @@
                                 </tr>
                             </thead>
                             <tbody id="bench-results-tbody" class="text-sm">
-                                <tr><td colspan="6" class="py-4 text-center text-slate-500">No benchmark experiments run yet.</td></tr>
+                                <tr>
+                                    <td colspan="6" class="py-4 text-center text-slate-500">No benchmark experiments run
+                                        yet.</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -164,10 +287,11 @@
                 <!-- Use Case Results Table -->
                 <div id="usecases-tab" class="p-6 tab-content hidden">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-purple-400">
-                            <i class="fa-solid fa-chart-line mr-2"></i> Use Case Experiment Results
-                        </h2>
-                        <button class="btn-clear text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">Clear History</button>
+                        <h2 class="text-lg font-semibold text-purple-400"><i class="fa-solid fa-chart-line mr-2"></i>
+                            Use Case Experiment Results</h2>
+                        <button
+                            class="btn-clear text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">Clear
+                            History</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -182,7 +306,10 @@
                                 </tr>
                             </thead>
                             <tbody id="uc-results-tbody" class="text-sm">
-                                <tr><td colspan="6" class="py-4 text-center text-slate-500">No use case experiments run yet.</td></tr>
+                                <tr>
+                                    <td colspan="6" class="py-4 text-center text-slate-500">No use case experiments run
+                                        yet.</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -194,45 +321,44 @@
                 <h2 class="text-xl font-semibold mb-4 text-slate-300 border-b border-slate-700 pb-2">
                     <i class="fa-solid fa-terminal mr-2"></i> System Logs
                 </h2>
-                <div id="log-container" class="bg-[#0f172a] rounded-lg p-4 font-mono text-xs text-green-400 overflow-y-auto max-h-[300px] flex-grow border border-slate-700">
-                    <!-- Logs injected here -->
+                <div id="log-container"
+                    class="bg-[#0f172a] rounded-lg p-4 font-mono text-xs text-green-400 overflow-y-auto max-h-[300px] flex-grow border border-slate-700">
                 </div>
             </div>
-            
+
         </div>
     </div>
 
-    <!-- JavaScript Application Logic -->
+    <!-- JavaScript -->
     <script>
         const API = {
             status: '/api/status',
             logs: '/api/logs',
-            run: '/api/run_experiment',
             runBenchSingle: '/api/run_benchmarks_single',
             runBenchAll: '/api/run_benchmarks_all',
             runUcSingle: '/api/run_usecases_single',
             runUcAll: '/api/run_usecases_all',
             addWorker: '/api/add_worker',
+            updateConfig: '/api/update_config',
+            setWeight: '/api/set_worker_weight',
             clear: '/api/clear',
             comparison: '/api/comparison'
         };
 
-        // DOM Elements
-        const elBenchSelect = document.getElementById('benchmark-select');
-        const elUcSelect = document.getElementById('usecase-select');
-        const elWorkers = document.getElementById('workers-container');
-        const elLogs = document.getElementById('log-container');
-        const elBenchResults = document.getElementById('bench-results-tbody');
-        const elUcResults = document.getElementById('uc-results-tbody');
-        const elWorkerCount = document.getElementById('worker-count');
-        const elMasterStatus = document.getElementById('master-status');
+        const $ = id => document.getElementById(id);
+        const elBenchSelect = $('benchmark-select');
+        const elUcSelect = $('usecase-select');
+        const elWorkers = $('workers-container');
+        const elLogs = $('log-container');
+        const elBenchResults = $('bench-results-tbody');
+        const elUcResults = $('uc-results-tbody');
+        const elWorkerCount = $('worker-count');
+        const elMasterStatus = $('master-status');
 
         let isRunning = false;
         let lastLogCount = 0;
-        let benchmarksList = [];
-        let useCasesList = [];
 
-        // Tabs
+        // ─── Tabs ────────────────────────────────────────────────────
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -242,19 +368,46 @@
             });
         });
 
-        // Initialization
+        // ─── Use-case conditional options ────────────────────────────
+        function toggleUseCaseOptions() {
+            const val = elUcSelect.value;
+            $('image-blur-opts').classList.toggle('hidden', !val.includes('Image Blur'));
+            $('crypto-opts').classList.toggle('hidden', !val.includes('Crypto'));
+        }
+
+        // ─── Send config before running use cases ────────────────────
+        async function syncConfig() {
+            const body = {
+                image_blur_count: parseInt($('img-count').value) || 8,
+                image_blur_size: parseInt($('img-size').value) || 512,
+                crypto_difficulty: parseInt($('crypto-diff').value) || 4
+            };
+            await fetch(API.updateConfig, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+        }
+
+        // ─── Init ────────────────────────────────────────────────────
         async function init() {
             try {
                 const res = await fetch(API.status);
                 const data = await res.json();
 
-                benchmarksList = data.benchmarks || [];
-                useCasesList = data.use_cases || [];
-                
-                // Populate dropdowns
-                elBenchSelect.innerHTML = benchmarksList.map(t => `<option value="${t}">${t}</option>`).join('');
-                elUcSelect.innerHTML = useCasesList.map(t => `<option value="${t}">${t}</option>`).join('');
-                
+                elBenchSelect.innerHTML = (data.benchmarks || []).map(t => `<option value="${t}">${t}</option>`).join('');
+                elUcSelect.innerHTML = (data.use_cases || []).map(t => `<option value="${t}">${t}</option>`).join('');
+
+                // Set config values from server
+                if (data.config) {
+                    $('img-count').value = data.config.image_blur_count || 8;
+                    $('img-size').value = data.config.image_blur_size || 512;
+                    $('crypto-diff').value = data.config.crypto_difficulty || 4;
+                }
+
+                elUcSelect.addEventListener('change', toggleUseCaseOptions);
+                toggleUseCaseOptions();
+
                 updateDashboard(data);
                 setInterval(pollData, 1000);
             } catch (err) {
@@ -263,29 +416,24 @@
             }
         }
 
-        // Periodic Polling
+        // ─── Polling ─────────────────────────────────────────────────
         async function pollData() {
             try {
                 const [statusRes, logsRes, compRes] = await Promise.all([
-                    fetch(API.status),
-                    fetch(API.logs),
-                    fetch(API.comparison)
+                    fetch(API.status), fetch(API.logs), fetch(API.comparison)
                 ]);
-
-                if(statusRes.ok) updateDashboard(await statusRes.json());
-                if(logsRes.ok) updateLogs(await logsRes.json());
-                if(compRes.ok) updateResults(await compRes.json());
-                
+                if (statusRes.ok) updateDashboard(await statusRes.json());
+                if (logsRes.ok) updateLogs(await logsRes.json());
+                if (compRes.ok) updateResults(await compRes.json());
             } catch (err) {
                 elMasterStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-500 mr-1"></i> Connection Lost';
             }
         }
 
-        // Update UI Components
+        // ─── Dashboard Update ────────────────────────────────────────
         function updateDashboard(data) {
             isRunning = data.is_running;
-            
-            // Status bar
+
             if (isRunning) {
                 elMasterStatus.innerHTML = `<i class="fa-solid fa-cog fa-spin mr-1"></i> ${data.current_status}`;
                 elMasterStatus.className = "px-4 py-2 rounded-full text-sm font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30";
@@ -294,10 +442,8 @@
                 elMasterStatus.className = "px-4 py-2 rounded-full text-sm font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
             }
 
-            // Disable/enable all run buttons
-            const allRunBtns = ['btn-run-bench-single', 'btn-run-bench-all', 'btn-run-uc-single', 'btn-run-uc-all'];
-            allRunBtns.forEach(id => {
-                const btn = document.getElementById(id);
+            ['btn-run-bench-single', 'btn-run-bench-all', 'btn-run-uc-single', 'btn-run-uc-all'].forEach(id => {
+                const btn = $(id);
                 btn.disabled = isRunning;
                 if (isRunning) btn.classList.add('opacity-50', 'cursor-not-allowed');
                 else btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -306,14 +452,14 @@
             // Workers
             const aliveCount = data.workers.filter(w => w.alive).length;
             elWorkerCount.textContent = `${aliveCount}/${data.workers.length} Online`;
-            
+
             elWorkers.innerHTML = data.workers.map(w => `
                 <div class="card bg-slate-800 rounded-lg p-3 border-l-4 ${w.alive ? 'border-emerald-500' : 'border-red-500'}">
                     <div class="flex justify-between items-center mb-2">
                         <span class="font-mono text-sm font-bold text-white">${w.id}</span>
-                        ${w.alive ? 
-                            `<span class="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded">Online (W:${w.weight})</span>` : 
-                            `<span class="text-xs bg-red-900/50 text-red-400 px-2 py-0.5 rounded">Offline</span>`}
+                        ${w.alive ?
+                    `<span class="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded">Online</span>` :
+                    `<span class="text-xs bg-red-900/50 text-red-400 px-2 py-0.5 rounded">Offline</span>`}
                     </div>
                     <div class="grid grid-cols-2 gap-2 text-xs text-slate-400">
                         <div>CPU: <span class="text-white">${w.cpu_usage}%</span></div>
@@ -324,15 +470,37 @@
                     <div class="mt-2 h-1 w-full bg-slate-700 rounded overflow-hidden">
                         <div class="h-full bg-amber-500 transition-all duration-300" style="width: ${Math.min(100, (w.active_tasks / 4) * 100)}%"></div>
                     </div>
+                    <!-- Weight control for WRR -->
+                    <div class="mt-3 flex items-center justify-between border-t border-slate-700 pt-2">
+                        <span class="text-xs text-slate-500"><i class="fa-solid fa-weight-hanging mr-1"></i>WRR Weight</span>
+                        <div class="flex items-center space-x-2">
+                            <select class="input-sm text-xs w-16 weight-select" data-worker="${w.id}">
+                                ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => `<option value="${v}" ${v === w.weight ? 'selected' : ''}>${v}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
                 </div>
             `).join('');
+
+            // Bind weight change events
+            document.querySelectorAll('.weight-select').forEach(sel => {
+                sel.addEventListener('change', async function () {
+                    const wid = this.dataset.worker;
+                    const wt = parseInt(this.value);
+                    await fetch(API.setWeight, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ worker_id: wid, weight: wt })
+                    });
+                });
+            });
         }
 
+        // ─── Logs ────────────────────────────────────────────────────
         function updateLogs(data) {
             const logs = data.logs || [];
             if (logs.length > lastLogCount) {
-                const newLogs = logs.slice(lastLogCount);
-                newLogs.forEach(txt => {
+                logs.slice(lastLogCount).forEach(txt => {
                     const el = document.createElement('div');
                     el.className = 'py-0.5 border-b border-slate-800/50';
                     if (txt.includes('✗') || txt.includes('ERROR')) el.classList.add('text-red-400');
@@ -346,16 +514,12 @@
             }
         }
 
+        // ─── Results Tables ──────────────────────────────────────────
         function buildResultRows(results, filterFn) {
             const filtered = results.filter(filterFn);
             if (filtered.length === 0) return null;
-
-            // Group by task type
             const grouped = {};
-            filtered.forEach(r => {
-                if (!grouped[r.task_type]) grouped[r.task_type] = [];
-                grouped[r.task_type].push(r);
-            });
+            filtered.forEach(r => { if (!grouped[r.task_type]) grouped[r.task_type] = []; grouped[r.task_type].push(r); });
 
             let html = "";
             for (const [taskType, taskResults] of Object.entries(grouped)) {
@@ -363,43 +527,27 @@
                 const maxThroughput = Math.max(...taskResults.map(r => r.throughput));
                 const minCpu = Math.min(...taskResults.map(r => r.max_node_utilization));
 
-                // Add task-type subheader
-                html += `
-                    <tr class="bg-slate-800/80 border-t-2 border-slate-700">
-                        <td colspan="6" class="py-3 px-4">
-                            <span class="font-bold text-lg text-emerald-400">
-                                <i class="fa-solid fa-layer-group mr-2"></i>${taskType}
-                            </span>
-                        </td>
-                    </tr>`;
+                html += `<tr class="bg-slate-800/80 border-t-2 border-slate-700"><td colspan="6" class="py-3 px-4"><span class="font-bold text-lg text-emerald-400"><i class="fa-solid fa-layer-group mr-2"></i>${taskType}</span></td></tr>`;
 
                 taskResults.forEach(r => {
-                    const isTimeWinner = r.total_time_ms === minTime;
-                    const isThroughputWinner = r.throughput === maxThroughput;
-                    const isCpuWinner = r.max_node_utilization === minCpu;
-
+                    const tw = r.total_time_ms === minTime, thw = r.throughput === maxThroughput, cw = r.max_node_utilization === minCpu;
                     html += `
                     <tr class="border-b border-slate-700/30 hover:bg-slate-800/40 transition">
-                        <td class="py-3 px-4 pl-6 text-slate-300 text-xs tracking-wider" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${taskType}">${taskType}</td>
+                        <td class="py-3 px-4 pl-6 text-slate-300 text-xs" style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${taskType}">${taskType}</td>
                         <td class="py-3 px-2 text-blue-300 font-medium">${r.algorithm_name}</td>
-                        <td class="py-3 px-2 ${isTimeWinner ? 'text-emerald-400 font-bold bg-emerald-900/20 rounded' : 'text-slate-300'}">
-                            ${r.total_time_ms.toLocaleString()}
-                            ${isTimeWinner ? ' <span class="text-[10px] ml-1 uppercase bg-emerald-600/30 px-1 py-0.5 rounded text-emerald-300">Fastest</span>' : ''}
+                        <td class="py-3 px-2 ${tw ? 'text-emerald-400 font-bold bg-emerald-900/20 rounded' : 'text-slate-300'}">
+                            ${r.total_time_ms.toLocaleString()}${tw ? ' <span class="text-[10px] ml-1 bg-emerald-600/30 px-1 py-0.5 rounded text-emerald-300">Fastest</span>' : ''}
                         </td>
-                        <td class="py-3 px-2 font-mono text-xs ${isThroughputWinner ? 'text-amber-300 font-bold bg-amber-900/20 rounded' : 'text-slate-400'}">
-                            ${r.throughput.toFixed(1)}/s
-                            ${isThroughputWinner ? ' <span class="text-[10px] ml-1 uppercase bg-amber-600/30 px-1 py-0.5 rounded text-amber-300">Highest</span>' : ''}
+                        <td class="py-3 px-2 font-mono text-xs ${thw ? 'text-amber-300 font-bold bg-amber-900/20 rounded' : 'text-slate-400'}">
+                            ${r.throughput.toFixed(1)}/s${thw ? ' <span class="text-[10px] ml-1 bg-amber-600/30 px-1 py-0.5 rounded text-amber-300">Highest</span>' : ''}
                         </td>
                         <td class="py-3 px-2 text-slate-400 text-xs">${r.load_std_dev.toFixed(2)}</td>
-                        <td class="py-3 px-2 ${isCpuWinner ? 'bg-blue-900/20 rounded' : ''}">
+                        <td class="py-3 px-2">
                             <div class="flex items-center">
                                 <div class="w-16 bg-slate-700 h-2 rounded mr-2 overflow-hidden shadow-inner hidden lg:block">
-                                    <div class="${isCpuWinner ? 'bg-cyan-400' : 'bg-blue-500'} h-full transition-all" style="width: ${r.max_node_utilization}%"></div>
+                                    <div class="${cw ? 'bg-cyan-400' : 'bg-blue-500'} h-full transition-all" style="width: ${r.max_node_utilization}%"></div>
                                 </div>
-                                <span class="text-xs ${isCpuWinner ? 'text-cyan-300 font-bold' : 'text-slate-400'}">
-                                    ${r.max_node_utilization.toFixed(0)}%
-                                    ${isCpuWinner ? ' <span class="text-[10px] ml-1 uppercase bg-cyan-600/30 px-1 py-0.5 rounded text-cyan-300">Lowest</span>' : ''}
-                                </span>
+                                <span class="text-xs ${cw ? 'text-cyan-300 font-bold' : 'text-slate-400'}">${r.max_node_utilization.toFixed(0)}%${cw ? ' <span class="text-[10px] ml-1 bg-cyan-600/30 px-1 py-0.5 rounded text-cyan-300">Lowest</span>' : ''}</span>
                             </div>
                         </td>
                     </tr>`;
@@ -410,91 +558,55 @@
 
         function updateResults(data) {
             const results = data.results || [];
-
-            // Benchmark results
-            const benchHtml = buildResultRows(results, r => r.task_type && r.task_type.includes('(Benchmark)'));
-            elBenchResults.innerHTML = benchHtml || '<tr><td colspan="6" class="py-4 text-center text-slate-500">No benchmark experiments run yet.</td></tr>';
-
-            // Use case results
-            const ucHtml = buildResultRows(results, r => r.task_type && r.task_type.includes('(Use Case)'));
-            elUcResults.innerHTML = ucHtml || '<tr><td colspan="6" class="py-4 text-center text-slate-500">No use case experiments run yet.</td></tr>';
+            elBenchResults.innerHTML = buildResultRows(results, r => r.task_type && r.task_type.includes('(Benchmark)')) || '<tr><td colspan="6" class="py-4 text-center text-slate-500">No benchmark experiments run yet.</td></tr>';
+            elUcResults.innerHTML = buildResultRows(results, r => r.task_type && r.task_type.includes('(Use Case)')) || '<tr><td colspan="6" class="py-4 text-center text-slate-500">No use case experiments run yet.</td></tr>';
         }
 
         // ─── Event Listeners ─────────────────────────────────────────
 
-        // Benchmark buttons
-        document.getElementById('btn-run-bench-single').addEventListener('click', async () => {
-            await fetch(API.runBenchSingle, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ task_type: elBenchSelect.value })
-            });
+        // Benchmarks
+        $('btn-run-bench-single').addEventListener('click', async () => {
+            await fetch(API.runBenchSingle, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elBenchSelect.value }) });
             pollData();
         });
+        $('btn-run-bench-all').addEventListener('click', async () => { await fetch(API.runBenchAll, { method: 'POST' }); pollData(); });
 
-        document.getElementById('btn-run-bench-all').addEventListener('click', async () => {
-            await fetch(API.runBenchAll, { method: 'POST' });
+        // Use Cases — sync config before running
+        $('btn-run-uc-single').addEventListener('click', async () => {
+            await syncConfig();
+            await fetch(API.runUcSingle, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elUcSelect.value }) });
             pollData();
         });
-
-        // Use case buttons
-        document.getElementById('btn-run-uc-single').addEventListener('click', async () => {
-            await fetch(API.runUcSingle, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ task_type: elUcSelect.value })
-            });
-            pollData();
-        });
-
-        document.getElementById('btn-run-uc-all').addEventListener('click', async () => {
+        $('btn-run-uc-all').addEventListener('click', async () => {
+            await syncConfig();
             await fetch(API.runUcAll, { method: 'POST' });
             pollData();
         });
 
         // Add Worker
-        document.getElementById('btn-add-worker').addEventListener('click', async () => {
-            const addr = document.getElementById('worker-address').value.trim();
-            const msgEl = document.getElementById('worker-add-msg');
+        $('btn-add-worker').addEventListener('click', async () => {
+            const addr = $('worker-address').value.trim();
+            const msgEl = $('worker-add-msg');
             if (!addr) return;
-
             try {
-                const res = await fetch(API.addWorker, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ address: addr })
-                });
+                const res = await fetch(API.addWorker, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: addr }) });
                 const data = await res.json();
                 msgEl.classList.remove('hidden');
-                if (res.ok) {
-                    msgEl.className = 'text-xs mt-2 text-emerald-400';
-                    msgEl.textContent = `✓ ${data.message} (alive: ${data.alive})`;
-                    document.getElementById('worker-address').value = '';
-                } else {
-                    msgEl.className = 'text-xs mt-2 text-red-400';
-                    msgEl.textContent = `✗ ${data.error}`;
-                }
+                if (res.ok) { msgEl.className = 'text-xs mt-2 text-emerald-400'; msgEl.textContent = `✓ ${data.message} (alive: ${data.alive})`; $('worker-address').value = ''; }
+                else { msgEl.className = 'text-xs mt-2 text-red-400'; msgEl.textContent = `✗ ${data.error}`; }
                 setTimeout(() => msgEl.classList.add('hidden'), 5000);
                 pollData();
-            } catch (err) {
-                msgEl.classList.remove('hidden');
-                msgEl.className = 'text-xs mt-2 text-red-400';
-                msgEl.textContent = `✗ Connection failed`;
-            }
+            } catch (err) { msgEl.classList.remove('hidden'); msgEl.className = 'text-xs mt-2 text-red-400'; msgEl.textContent = '✗ Connection failed'; }
         });
 
-        // Clear buttons
+        // Clear
         document.querySelectorAll('.btn-clear').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                await fetch(API.clear);
-                elLogs.innerHTML = '';
-                lastLogCount = 0;
-                pollData();
-            });
+            btn.addEventListener('click', async () => { await fetch(API.clear); elLogs.innerHTML = ''; lastLogCount = 0; pollData(); });
         });
 
         // Start
         init();
     </script>
 </body>
+
 </html>
