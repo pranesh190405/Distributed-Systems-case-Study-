@@ -476,6 +476,12 @@
             const aliveCount = data.workers.filter(w => w.alive).length;
             elWorkerCount.textContent = `${aliveCount}/${data.workers.length} Online`;
 
+            // If a weight dropdown is currently focused, skip this update to allow user interaction
+            const activeEl = document.activeElement;
+            if (activeEl && activeEl.classList.contains('weight-select')) {
+                return;
+            }
+
             elWorkers.innerHTML = data.workers.map(w => `
                 <div class="card bg-slate-800 rounded-lg p-3 border-l-4 ${w.alive ? 'border-emerald-500' : 'border-red-500'}">
                     <div class="flex justify-between items-center mb-2">
