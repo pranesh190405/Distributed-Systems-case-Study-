@@ -114,10 +114,19 @@
                     <i class="fa-solid fa-gauge-high mr-2"></i> Benchmarks
                 </h2>
                 <div class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-1">Select Benchmark</label>
-                        <select id="benchmark-select"
-                            class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"></select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Select Benchmark</label>
+                            <select id="benchmark-select"
+                                class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Select Algorithm</label>
+                            <select id="bench-algo-select"
+                                class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                                <option value="ALL">All Algorithms</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <button id="btn-run-bench-single"
@@ -140,10 +149,19 @@
                     <i class="fa-solid fa-flask mr-2"></i> Use Cases
                 </h2>
                 <div class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-1">Select Use Case</label>
-                        <select id="usecase-select"
-                            class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"></select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Select Use Case</label>
+                            <select id="usecase-select"
+                                class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-1">Select Algorithm</label>
+                            <select id="uc-algo-select"
+                                class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition">
+                                <option value="ALL">All Algorithms</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Image Blur Options (shown when Image Blur selected) -->
@@ -398,6 +416,11 @@
                 elBenchSelect.innerHTML = (data.benchmarks || []).map(t => `<option value="${t}">${t}</option>`).join('');
                 elUcSelect.innerHTML = (data.use_cases || []).map(t => `<option value="${t}">${t}</option>`).join('');
 
+                const algoOptions = `<option value="ALL">All Algorithms</option>` + 
+                    (data.algorithms || []).map(a => `<option value="${a}">${a}</option>`).join('');
+                $('bench-algo-select').innerHTML = algoOptions;
+                $('uc-algo-select').innerHTML = algoOptions;
+
                 // Set config values from server
                 if (data.config) {
                     $('img-count').value = data.config.image_blur_count || 8;
@@ -471,6 +494,7 @@
                         <div class="h-full bg-amber-500 transition-all duration-300" style="width: ${Math.min(100, (w.active_tasks / 4) * 100)}%"></div>
                     </div>
                     <!-- Weight control for WRR -->
+                    ${((($('bench-algo-select') && $('bench-algo-select').value === 'Weighted Round Robin') || ($('uc-algo-select') && $('uc-algo-select').value === 'Weighted Round Robin') || (data.current_status && data.current_status.includes('Weighted Round Robin'))) ? `
                     <div class="mt-3 flex items-center justify-between border-t border-slate-700 pt-2">
                         <span class="text-xs text-slate-500"><i class="fa-solid fa-weight-hanging mr-1"></i>WRR Weight</span>
                         <div class="flex items-center space-x-2">
@@ -479,6 +503,7 @@
                             </select>
                         </div>
                     </div>
+                    ` : '')}
                 </div>
             `).join('');
 
@@ -566,7 +591,12 @@
 
         // Benchmarks
         $('btn-run-bench-single').addEventListener('click', async () => {
-            await fetch(API.runBenchSingle, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elBenchSelect.value }) });
+            const algo = $('bench-algo-select').value;
+            if (algo === 'ALL') {
+                await fetch(API.runBenchSingle, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elBenchSelect.value }) });
+            } else {
+                await fetch('/api/run_experiment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elBenchSelect.value, algorithm: algo }) });
+            }
             pollData();
         });
         $('btn-run-bench-all').addEventListener('click', async () => { await fetch(API.runBenchAll, { method: 'POST' }); pollData(); });
@@ -574,7 +604,12 @@
         // Use Cases — sync config before running
         $('btn-run-uc-single').addEventListener('click', async () => {
             await syncConfig();
-            await fetch(API.runUcSingle, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elUcSelect.value }) });
+            const algo = $('uc-algo-select').value;
+            if (algo === 'ALL') {
+                await fetch(API.runUcSingle, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elUcSelect.value }) });
+            } else {
+                await fetch('/api/run_experiment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_type: elUcSelect.value, algorithm: algo }) });
+            }
             pollData();
         });
         $('btn-run-uc-all').addEventListener('click', async () => {
