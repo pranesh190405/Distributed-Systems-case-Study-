@@ -19,6 +19,12 @@
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Tab styles */
+        .tab-btn { cursor: pointer; padding: 0.5rem 1rem; border-radius: 0.5rem 0.5rem 0 0; font-weight: 600; transition: all 0.2s; }
+        .tab-btn.active { background: rgba(30, 41, 59, 0.9); color: #38bdf8; border-bottom: 2px solid #38bdf8; }
+        .tab-btn:not(.active) { background: rgba(15, 23, 42, 0.5); color: #64748b; }
+        .tab-btn:not(.active):hover { color: #94a3b8; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col p-4 md:p-8">
@@ -42,39 +48,66 @@
         
         <!-- Left Column: Controls & Workers -->
         <div class="lg:col-span-1 flex flex-col space-y-6">
-            
-            <!-- Controls Panel -->
+
+            <!-- Add Worker Panel -->
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-slate-700 pb-2">
+                    <i class="fa-solid fa-plug mr-2"></i> Connect Worker
+                </h2>
+                <div class="flex space-x-2">
+                    <input id="worker-address" type="text" placeholder="IP:PORT  (e.g. 192.168.1.5:5001)"
+                           class="flex-grow bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition placeholder-slate-500">
+                    <button id="btn-add-worker" class="bg-cyan-600 hover:bg-cyan-500 text-white py-2 px-4 rounded-lg font-medium transition shadow-lg shadow-cyan-900/50 text-sm flex items-center">
+                        <i class="fa-solid fa-plus mr-1"></i> Connect
+                    </button>
+                </div>
+                <p id="worker-add-msg" class="text-xs mt-2 text-slate-500 hidden"></p>
+            </div>
+
+            <!-- Benchmarks Panel -->
             <div class="glass rounded-xl p-6 shadow-lg">
                 <h2 class="text-xl font-semibold mb-4 text-emerald-400 border-b border-slate-700 pb-2">
-                    <i class="fa-solid fa-gamepad mr-2"></i> Experiment Controls
+                    <i class="fa-solid fa-gauge-high mr-2"></i> Benchmarks
                 </h2>
-                
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-1">Task Type</label>
-                        <select id="task-select" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
-                            <!-- Populated via JS -->
-                        </select>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Select Benchmark</label>
+                        <select id="benchmark-select" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"></select>
                     </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-1">Load Balancer</label>
-                        <select id="algo-select" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
-                            <!-- Populated via JS -->
-                        </select>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 pt-2">
-                        <button id="btn-run" class="col-span-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-4 rounded-lg font-medium transition shadow-lg shadow-emerald-900/50 flex items-center justify-center">
-                            <i class="fa-solid fa-play mr-2"></i> Run Single
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btn-run-bench-single" class="bg-emerald-600 hover:bg-emerald-500 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-emerald-900/50 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-play mr-1"></i> Run Selected
                         </button>
-                        <button id="btn-run-all" class="col-span-1 bg-purple-600 hover:bg-purple-500 text-white py-2 px-4 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center">
-                            <i class="fa-solid fa-forward-fast mr-2"></i> Run All 50
+                        <button id="btn-run-bench-all" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-emerald-900/50 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-forward-fast mr-1"></i> Run All
                         </button>
                     </div>
+                    <p class="text-xs text-slate-500"><i class="fa-solid fa-info-circle mr-1"></i>"Run Selected" runs all 5 algorithms for the chosen benchmark. "Run All" runs every benchmark × every algorithm.</p>
                 </div>
             </div>
 
+            <!-- Use Cases Panel -->
+            <div class="glass rounded-xl p-6 shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 text-purple-400 border-b border-slate-700 pb-2">
+                    <i class="fa-solid fa-flask mr-2"></i> Use Cases
+                </h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Select Use Case</label>
+                        <select id="usecase-select" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btn-run-uc-single" class="bg-purple-600 hover:bg-purple-500 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-play mr-1"></i> Run Selected
+                        </button>
+                        <button id="btn-run-uc-all" class="bg-purple-700 hover:bg-purple-600 text-white py-2 px-3 rounded-lg font-medium transition shadow-lg shadow-purple-900/50 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-forward-fast mr-1"></i> Run All
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500"><i class="fa-solid fa-info-circle mr-1"></i>"Run Selected" runs all 5 algorithms for the chosen use case. "Run All" runs every use case × every algorithm.</p>
+                </div>
+            </div>
+            
             <!-- Worker Nodes Panel -->
             <div class="glass rounded-xl p-6 shadow-lg flex-grow flex flex-col">
                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
@@ -85,7 +118,6 @@
                 </div>
                 
                 <div id="workers-container" class="space-y-3 overflow-y-auto max-h-[400px] flex-grow pr-2">
-                    <!-- Worker cards injected here -->
                     <div class="text-center text-slate-500 py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</div>
                 </div>
             </div>
@@ -94,33 +126,66 @@
 
         <!-- Right Column: Results & Analytics -->
         <div class="lg:col-span-2 flex flex-col space-y-6">
-            
-            <!-- Metrics Table Panel -->
-            <div class="glass rounded-xl p-6 shadow-lg">
-                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                    <h2 class="text-xl font-semibold text-amber-400">
-                        <i class="fa-solid fa-chart-line mr-2"></i> Experiment Results
-                    </h2>
-                    <button id="btn-clear" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">Clear History</button>
+
+            <!-- Results Tabs -->
+            <div class="glass rounded-xl shadow-lg overflow-hidden">
+                <div class="flex border-b border-slate-700 px-4 pt-4">
+                    <button class="tab-btn active" data-tab="benchmarks-tab"><i class="fa-solid fa-gauge-high mr-1"></i> Benchmark Results</button>
+                    <button class="tab-btn ml-2" data-tab="usecases-tab"><i class="fa-solid fa-flask mr-1"></i> Use Case Results</button>
                 </div>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="text-slate-400 text-sm border-b border-slate-700">
-                                <th class="pb-2 font-medium">Task</th>
-                                <th class="pb-2 font-medium">Algorithm</th>
-                                <th class="pb-2 font-medium">Time (ms)</th>
-                                <th class="pb-2 font-medium">Throughput</th>
-                                <th class="pb-2 font-medium">Load StdDev</th>
-                                <th class="pb-2 font-medium">Max CPU</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-tbody" class="text-sm">
-                            <!-- Rows injected here -->
-                            <tr><td colspan="6" class="py-4 text-center text-slate-500">No experiments run yet.</td></tr>
-                        </tbody>
-                    </table>
+
+                <!-- Benchmark Results Table -->
+                <div id="benchmarks-tab" class="p-6 tab-content">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-emerald-400">
+                            <i class="fa-solid fa-chart-line mr-2"></i> Benchmark Experiment Results
+                        </h2>
+                        <button class="btn-clear text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">Clear History</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-slate-400 text-sm border-b border-slate-700">
+                                    <th class="pb-2 font-medium">Task</th>
+                                    <th class="pb-2 font-medium">Algorithm</th>
+                                    <th class="pb-2 font-medium">Time (ms)</th>
+                                    <th class="pb-2 font-medium">Throughput</th>
+                                    <th class="pb-2 font-medium">Load StdDev</th>
+                                    <th class="pb-2 font-medium">Max CPU</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bench-results-tbody" class="text-sm">
+                                <tr><td colspan="6" class="py-4 text-center text-slate-500">No benchmark experiments run yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Use Case Results Table -->
+                <div id="usecases-tab" class="p-6 tab-content hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-purple-400">
+                            <i class="fa-solid fa-chart-line mr-2"></i> Use Case Experiment Results
+                        </h2>
+                        <button class="btn-clear text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">Clear History</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-slate-400 text-sm border-b border-slate-700">
+                                    <th class="pb-2 font-medium">Task</th>
+                                    <th class="pb-2 font-medium">Algorithm</th>
+                                    <th class="pb-2 font-medium">Time (ms)</th>
+                                    <th class="pb-2 font-medium">Throughput</th>
+                                    <th class="pb-2 font-medium">Load StdDev</th>
+                                    <th class="pb-2 font-medium">Max CPU</th>
+                                </tr>
+                            </thead>
+                            <tbody id="uc-results-tbody" class="text-sm">
+                                <tr><td colspan="6" class="py-4 text-center text-slate-500">No use case experiments run yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -143,32 +208,52 @@
             status: '/api/status',
             logs: '/api/logs',
             run: '/api/run_experiment',
-            runAll: '/api/run_all',
+            runBenchSingle: '/api/run_benchmarks_single',
+            runBenchAll: '/api/run_benchmarks_all',
+            runUcSingle: '/api/run_usecases_single',
+            runUcAll: '/api/run_usecases_all',
+            addWorker: '/api/add_worker',
             clear: '/api/clear',
             comparison: '/api/comparison'
         };
 
         // DOM Elements
-        const elTasks = document.getElementById('task-select');
-        const elAlgos = document.getElementById('algo-select');
+        const elBenchSelect = document.getElementById('benchmark-select');
+        const elUcSelect = document.getElementById('usecase-select');
         const elWorkers = document.getElementById('workers-container');
         const elLogs = document.getElementById('log-container');
-        const elResults = document.getElementById('results-tbody');
+        const elBenchResults = document.getElementById('bench-results-tbody');
+        const elUcResults = document.getElementById('uc-results-tbody');
         const elWorkerCount = document.getElementById('worker-count');
         const elMasterStatus = document.getElementById('master-status');
 
         let isRunning = false;
         let lastLogCount = 0;
+        let benchmarksList = [];
+        let useCasesList = [];
+
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.remove('hidden');
+            });
+        });
 
         // Initialization
         async function init() {
             try {
                 const res = await fetch(API.status);
                 const data = await res.json();
+
+                benchmarksList = data.benchmarks || [];
+                useCasesList = data.use_cases || [];
                 
                 // Populate dropdowns
-                elTasks.innerHTML = data.task_types.map(t => `<option value="${t}">${t}</option>`).join('');
-                elAlgos.innerHTML = data.algorithms.map(a => `<option value="${a}">${a}</option>`).join('');
+                elBenchSelect.innerHTML = benchmarksList.map(t => `<option value="${t}">${t}</option>`).join('');
+                elUcSelect.innerHTML = useCasesList.map(t => `<option value="${t}">${t}</option>`).join('');
                 
                 updateDashboard(data);
                 setInterval(pollData, 1000);
@@ -204,16 +289,19 @@
             if (isRunning) {
                 elMasterStatus.innerHTML = `<i class="fa-solid fa-cog fa-spin mr-1"></i> ${data.current_status}`;
                 elMasterStatus.className = "px-4 py-2 rounded-full text-sm font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30";
-                document.getElementById('btn-run').disabled = true;
-                document.getElementById('btn-run-all').disabled = true;
-                document.getElementById('btn-run').classList.add('opacity-50', 'cursor-not-allowed');
             } else {
                 elMasterStatus.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Ready`;
                 elMasterStatus.className = "px-4 py-2 rounded-full text-sm font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-                document.getElementById('btn-run').disabled = false;
-                document.getElementById('btn-run-all').disabled = false;
-                document.getElementById('btn-run').classList.remove('opacity-50', 'cursor-not-allowed');
             }
+
+            // Disable/enable all run buttons
+            const allRunBtns = ['btn-run-bench-single', 'btn-run-bench-all', 'btn-run-uc-single', 'btn-run-uc-all'];
+            allRunBtns.forEach(id => {
+                const btn = document.getElementById(id);
+                btn.disabled = isRunning;
+                if (isRunning) btn.classList.add('opacity-50', 'cursor-not-allowed');
+                else btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
 
             // Workers
             const aliveCount = data.workers.filter(w => w.alive).length;
@@ -233,7 +321,6 @@
                         <div>Active: <span class="text-amber-400 font-bold">${w.active_tasks}</span></div>
                         <div>Done: <span class="text-emerald-400">${w.completed_tasks}</span></div>
                     </div>
-                    <!-- Activity bar -->
                     <div class="mt-2 h-1 w-full bg-slate-700 rounded overflow-hidden">
                         <div class="h-full bg-amber-500 transition-all duration-300" style="width: ${Math.min(100, (w.active_tasks / 4) * 100)}%"></div>
                     </div>
@@ -259,140 +346,151 @@
             }
         }
 
-        function updateResults(data) {
-            const results = data.results || [];
-            if (results.length === 0) {
-                elResults.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-500">No experiments run yet.</td></tr>';
-                return;
-            }
+        function buildResultRows(results, filterFn) {
+            const filtered = results.filter(filterFn);
+            if (filtered.length === 0) return null;
 
-            // Base mapping logic grouping the pairs
-            const pairMap = {
-                "Matrix Multiplication (Benchmark)": "Group 1: Deterministic Uniform Compute",
-                "ML Batch Inference (Use Case)": "Group 1: Deterministic Uniform Compute",
-                "Monte Carlo Pi (Benchmark)": "Group 2: Statistical Uniform Compute",
-                "Financial Option Pricing (Use Case)": "Group 2: Statistical Uniform Compute",
-                "Prime Factorization (Benchmark)": "Group 3: Variable Compute",
-                "RSA Key Cracking (Use Case)": "Group 3: Variable Compute",
-                "Data Sorting (Benchmark)": "Group 4: Memory-Heavy Processing",
-                "ETL Log Aggregation (Use Case)": "Group 4: Memory-Heavy Processing",
-                "IO Simulation (Benchmark)": "Group 5: High Network Jitter",
-                "Distributed Web Crawler (Use Case)": "Group 5: High Network Jitter"
-            };
-
-            const expectedWinners = {
-                "Group 1: Deterministic Uniform Compute": "Expected Winner: Round Robin",
-                "Group 2: Statistical Uniform Compute": "Expected Winner: Round Robin / WRR",
-                "Group 3: Variable Compute": "Expected Winner: Least Connections",
-                "Group 4: Memory-Heavy Processing": "Expected Winner: Least Connections",
-                "Group 5: High Network Jitter": "Expected Winner: Least Response Time"
-            };
-
-            // Group results
+            // Group by task type
             const grouped = {};
-            results.forEach(r => {
-                const groupName = pairMap[r.task_type] || "Other Tasks";
-                if (!grouped[groupName]) grouped[groupName] = [];
-                grouped[groupName].push(r);
+            filtered.forEach(r => {
+                if (!grouped[r.task_type]) grouped[r.task_type] = [];
+                grouped[r.task_type].push(r);
             });
 
-            let htmlString = "";
+            let html = "";
+            for (const [taskType, taskResults] of Object.entries(grouped)) {
+                const minTime = Math.min(...taskResults.map(r => r.total_time_ms));
+                const maxThroughput = Math.max(...taskResults.map(r => r.throughput));
+                const minCpu = Math.min(...taskResults.map(r => r.max_node_utilization));
 
-            for (const [groupName, groupResults] of Object.entries(grouped)) {
-                // Find Category Winners for this Group overall? 
-                // Wait, it might be better to find minTime per task inside the group.
-                const taskSubgroups = {};
-                groupResults.forEach(r => {
-                    if(!taskSubgroups[r.task_type]) taskSubgroups[r.task_type] = [];
-                    taskSubgroups[r.task_type].push(r);
-                });
-
-                // Add Subheader for Benchmark Type
-                htmlString += `
+                // Add task-type subheader
+                html += `
                     <tr class="bg-slate-800/80 border-t-2 border-slate-700">
                         <td colspan="6" class="py-3 px-4">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between">
-                                <span class="font-bold text-lg text-emerald-400">
-                                    <i class="fa-solid fa-layer-group mr-2"></i>${groupName}
-                                </span>
-                                <span class="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full uppercase mt-2 md:mt-0 tracking-widest border border-slate-700 shadow-inner">
-                                    <i class="fa-solid fa-lightbulb text-amber-500 mr-2"></i> ${expectedWinners[groupName] || 'General Workload'}
+                            <span class="font-bold text-lg text-emerald-400">
+                                <i class="fa-solid fa-layer-group mr-2"></i>${taskType}
+                            </span>
+                        </td>
+                    </tr>`;
+
+                taskResults.forEach(r => {
+                    const isTimeWinner = r.total_time_ms === minTime;
+                    const isThroughputWinner = r.throughput === maxThroughput;
+                    const isCpuWinner = r.max_node_utilization === minCpu;
+
+                    html += `
+                    <tr class="border-b border-slate-700/30 hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 pl-6 text-slate-300 text-xs tracking-wider" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${taskType}">${taskType}</td>
+                        <td class="py-3 px-2 text-blue-300 font-medium">${r.algorithm_name}</td>
+                        <td class="py-3 px-2 ${isTimeWinner ? 'text-emerald-400 font-bold bg-emerald-900/20 rounded' : 'text-slate-300'}">
+                            ${r.total_time_ms.toLocaleString()}
+                            ${isTimeWinner ? ' <span class="text-[10px] ml-1 uppercase bg-emerald-600/30 px-1 py-0.5 rounded text-emerald-300">Fastest</span>' : ''}
+                        </td>
+                        <td class="py-3 px-2 font-mono text-xs ${isThroughputWinner ? 'text-amber-300 font-bold bg-amber-900/20 rounded' : 'text-slate-400'}">
+                            ${r.throughput.toFixed(1)}/s
+                            ${isThroughputWinner ? ' <span class="text-[10px] ml-1 uppercase bg-amber-600/30 px-1 py-0.5 rounded text-amber-300">Highest</span>' : ''}
+                        </td>
+                        <td class="py-3 px-2 text-slate-400 text-xs">${r.load_std_dev.toFixed(2)}</td>
+                        <td class="py-3 px-2 ${isCpuWinner ? 'bg-blue-900/20 rounded' : ''}">
+                            <div class="flex items-center">
+                                <div class="w-16 bg-slate-700 h-2 rounded mr-2 overflow-hidden shadow-inner hidden lg:block">
+                                    <div class="${isCpuWinner ? 'bg-cyan-400' : 'bg-blue-500'} h-full transition-all" style="width: ${r.max_node_utilization}%"></div>
+                                </div>
+                                <span class="text-xs ${isCpuWinner ? 'text-cyan-300 font-bold' : 'text-slate-400'}">
+                                    ${r.max_node_utilization.toFixed(0)}%
+                                    ${isCpuWinner ? ' <span class="text-[10px] ml-1 uppercase bg-cyan-600/30 px-1 py-0.5 rounded text-cyan-300">Lowest</span>' : ''}
                                 </span>
                             </div>
                         </td>
-                    </tr>
-                `;
-
-                for (const [taskType, taskResults] of Object.entries(taskSubgroups)) {
-                    const minTime = Math.min(...taskResults.map(r => r.total_time_ms));
-                    const maxThroughput = Math.max(...taskResults.map(r => r.throughput));
-                    const minCpuList = taskResults.map(r => r.max_node_utilization);
-                    const minCpu = Math.min(...minCpuList);
-
-                    taskResults.forEach(r => {
-                        const isTimeWinner = r.total_time_ms === minTime;
-                        const isThroughputWinner = r.throughput === maxThroughput;
-                        const isCpuWinner = r.max_node_utilization === minCpu;
-                        
-                        // Extract just the first acronym to save space on mobile UI
-                        const shortName = taskType.split(' ')[0];
-
-                        htmlString += `
-                        <tr class="border-b border-slate-700/30 hover:bg-slate-800/40 transition">
-                            <td class="py-3 px-4 pl-4 text-slate-300 text-xs tracking-wider" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${taskType}">${taskType}</td>
-                            <td class="py-3 px-2 text-blue-300 font-medium">${r.algorithm_name}</td>
-                            <td class="py-3 px-2 ${isTimeWinner ? 'text-emerald-400 font-bold bg-emerald-900/20 rounded' : 'text-slate-300'}">
-                                ${r.total_time_ms.toLocaleString()}
-                                ${isTimeWinner ? ' <span class="text-[10px] ml-1 uppercase bg-emerald-600/30 px-1 py-0.5 rounded text-emerald-300">Fastest</span>' : ''}
-                            </td>
-                            <td class="py-3 px-2 font-mono text-xs ${isThroughputWinner ? 'text-amber-300 font-bold bg-amber-900/20 rounded' : 'text-slate-400'}">
-                                ${r.throughput.toFixed(1)}/s
-                                ${isThroughputWinner ? ' <span class="text-[10px] ml-1 uppercase bg-amber-600/30 px-1 py-0.5 rounded text-amber-300">Highest</span>' : ''}
-                            </td>
-                            <td class="py-3 px-2 text-slate-400 text-xs">${r.load_std_dev.toFixed(2)}</td>
-                            <td class="py-3 px-2 ${isCpuWinner ? 'bg-blue-900/20 rounded' : ''}">
-                                <div class="flex items-center">
-                                    <div class="w-16 bg-slate-700 h-2 rounded mr-2 overflow-hidden shadow-inner hidden lg:block">
-                                        <div class="${isCpuWinner ? 'bg-cyan-400' : 'bg-blue-500'} h-full transition-all" style="width: ${r.max_node_utilization}%"></div>
-                                    </div>
-                                    <span class="text-xs ${isCpuWinner ? 'text-cyan-300 font-bold' : 'text-slate-400'}">
-                                        ${r.max_node_utilization.toFixed(0)}%
-                                        ${isCpuWinner ? ' <span class="text-[10px] ml-1 uppercase bg-cyan-600/30 px-1 py-0.5 rounded text-cyan-300">Lowest Load</span>' : ''}
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>`;
-                    });
-                }
+                    </tr>`;
+                });
             }
-
-            elResults.innerHTML = htmlString;
+            return html;
         }
 
-        // Event Listeners
-        document.getElementById('btn-run').addEventListener('click', async () => {
-            const payload = {
-                task_type: elTasks.value,
-                algorithm: elAlgos.value
-            };
-            await fetch(API.run, {
+        function updateResults(data) {
+            const results = data.results || [];
+
+            // Benchmark results
+            const benchHtml = buildResultRows(results, r => r.task_type && r.task_type.includes('(Benchmark)'));
+            elBenchResults.innerHTML = benchHtml || '<tr><td colspan="6" class="py-4 text-center text-slate-500">No benchmark experiments run yet.</td></tr>';
+
+            // Use case results
+            const ucHtml = buildResultRows(results, r => r.task_type && r.task_type.includes('(Use Case)'));
+            elUcResults.innerHTML = ucHtml || '<tr><td colspan="6" class="py-4 text-center text-slate-500">No use case experiments run yet.</td></tr>';
+        }
+
+        // ─── Event Listeners ─────────────────────────────────────────
+
+        // Benchmark buttons
+        document.getElementById('btn-run-bench-single').addEventListener('click', async () => {
+            await fetch(API.runBenchSingle, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ task_type: elBenchSelect.value })
             });
             pollData();
         });
 
-        document.getElementById('btn-run-all').addEventListener('click', async () => {
-            await fetch(API.runAll, { method: 'POST' });
+        document.getElementById('btn-run-bench-all').addEventListener('click', async () => {
+            await fetch(API.runBenchAll, { method: 'POST' });
             pollData();
         });
 
-        document.getElementById('btn-clear').addEventListener('click', async () => {
-            await fetch(API.clear);
-            elLogs.innerHTML = '';
-            lastLogCount = 0;
+        // Use case buttons
+        document.getElementById('btn-run-uc-single').addEventListener('click', async () => {
+            await fetch(API.runUcSingle, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ task_type: elUcSelect.value })
+            });
             pollData();
+        });
+
+        document.getElementById('btn-run-uc-all').addEventListener('click', async () => {
+            await fetch(API.runUcAll, { method: 'POST' });
+            pollData();
+        });
+
+        // Add Worker
+        document.getElementById('btn-add-worker').addEventListener('click', async () => {
+            const addr = document.getElementById('worker-address').value.trim();
+            const msgEl = document.getElementById('worker-add-msg');
+            if (!addr) return;
+
+            try {
+                const res = await fetch(API.addWorker, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ address: addr })
+                });
+                const data = await res.json();
+                msgEl.classList.remove('hidden');
+                if (res.ok) {
+                    msgEl.className = 'text-xs mt-2 text-emerald-400';
+                    msgEl.textContent = `✓ ${data.message} (alive: ${data.alive})`;
+                    document.getElementById('worker-address').value = '';
+                } else {
+                    msgEl.className = 'text-xs mt-2 text-red-400';
+                    msgEl.textContent = `✗ ${data.error}`;
+                }
+                setTimeout(() => msgEl.classList.add('hidden'), 5000);
+                pollData();
+            } catch (err) {
+                msgEl.classList.remove('hidden');
+                msgEl.className = 'text-xs mt-2 text-red-400';
+                msgEl.textContent = `✗ Connection failed`;
+            }
+        });
+
+        // Clear buttons
+        document.querySelectorAll('.btn-clear').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                await fetch(API.clear);
+                elLogs.innerHTML = '';
+                lastLogCount = 0;
+                pollData();
+            });
         });
 
         // Start

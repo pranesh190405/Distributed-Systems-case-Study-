@@ -214,40 +214,7 @@ class MasterServer:
 
         return chunks, {"mat_a": mat_a, "mat_b": mat_b, "n": n}
 
-    def _split_ml_inference(self, num_chunks: int, task_id: str):
-        """Split ML Batch Inference task into row-slab chunks."""
-        # We simulate a dataset of 5000 rows, 100 features. And model weights 100x50.
-        n_samples = 5000
-        n_features = 100
-        n_neurons = 50
-        rng = random.Random(42)
-        batch_x = [[rng.random() for _ in range(n_features)] for _ in range(n_samples)]
-        weights = [[rng.random() for _ in range(n_neurons)] for _ in range(n_features)]
-        bias = [rng.random() for _ in range(n_neurons)]
 
-        chunks = []
-        rows_per = n_samples // num_chunks
-        remainder = n_samples // num_chunks
-        remainder = n_samples % num_chunks
-        start = 0
-
-        for c in range(num_chunks):
-            chunk_rows = rows_per + (1 if c < remainder else 0)
-            end = start + chunk_rows
-            chunks.append(TaskChunk(
-                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.ML_INFERENCE.value,
-                data={
-                    "batch_x": batch_x[start:end],
-                    "weights": weights,
-                    "bias": bias,
-                    "start_idx": start,
-                    "end_idx": end,
-                }
-            ))
-            start = end
-
-        return chunks, {"n_samples": n_samples, "n_neurons": n_neurons}
 
     def _split_monte_carlo(self, num_chunks: int, task_id: str):
         """Split Monte Carlo Pi into sample-count chunks."""
@@ -266,27 +233,7 @@ class MasterServer:
 
         return chunks, {"total_samples": total}
 
-    def _split_financial_pricing(self, num_chunks: int, task_id: str):
-        """Split Monte Carlo option pricing into sample-count chunks."""
-        total = self.monte_carlo_samples
-        per_chunk = total // num_chunks
-        remainder = total % num_chunks
-        chunks = []
 
-        for c in range(num_chunks):
-            samples = per_chunk + (1 if c < remainder else 0)
-            chunks.append(TaskChunk(
-                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.FINANCIAL_PRICING.value,
-                data={
-                    "num_paths": samples, 
-                    "S0": 100.0, "K": 105.0, "T": 1.0, 
-                    "r": 0.05, "sigma": 0.2,
-                    "seed": c * 12345 + 1
-                }
-            ))
-
-        return chunks, {"total_samples": total}
 
     def _split_prime(self, num_chunks: int, task_id: str):
         """Split prime factorization into batches of numbers."""
@@ -385,38 +332,7 @@ class MasterServer:
 
         return chunks, {"total_logs": size_per_chunk * num_chunks}
 
-    def _split_io(self, num_chunks: int, task_id: str):
-        """Split IO simulation task into varying sleep delays."""
-        rng = random.Random(999)
-        chunks = []
 
-        for c in range(num_chunks):
-            sleep_time = rng.uniform(0.1, 0.5) 
-            chunks.append(TaskChunk(
-                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.IO_SIMULATION.value,
-                data={"sleep_time": sleep_time}
-            ))
-
-        return chunks, {"expected_total_sleep": sum(c.data["sleep_time"] for c in chunks)}
-
-    def _split_web_scraper(self, num_chunks: int, task_id: str):
-        """Split Web Scraping into tasks with variable network latency."""
-        rng = random.Random(999)
-        chunks = []
-        urls = ["http://example.com/page1", "http://test.org/api", "http://slow-site.com/data"]
-
-        for c in range(num_chunks):
-            # Highly variable latency, from 50ms to 800ms
-            latency = rng.uniform(0.05, 0.8) 
-            url = rng.choice(urls)
-            chunks.append(TaskChunk(
-                task_id=task_id, chunk_id=c, total_chunks=num_chunks,
-                task_type=TaskType.WEB_CRAWLER.value,
-                data={"target_url": url, "simulated_latency": latency}
-            ))
-
-        return chunks, {"expected_total_sleep": sum(c.data["simulated_latency"] for c in chunks)}
 
     def _split_image_blur(self, num_chunks: int, task_id: str):
         """Split Image Blur task into chunks with varying image sizes."""
@@ -608,25 +524,7 @@ class MasterServer:
         ]
         return "\n".join(lines)
 
-    def _assemble_ml_inference(self, results: list, metadata: dict) -> str:
-        """Assemble ML Batch Inference results."""
-        n_samples = metadata["n_samples"]
-        n_neurons = metadata["n_neurons"]
-        total_pred = 0
 
-        for r in results:
-            if not r.get("success", False):
-                continue
-            data = r.get("data", {})
-            total_pred += len(data.get("predictions", []))
-
-        lines = [
-            f"ML Batch Inference Complete.",
-            f"Expected samples: {n_samples:,}",
-            f"Predictions generated: {total_pred:,}",
-            f"Verification: {'✓ PASSED' if total_pred == n_samples else '✗ FAILED'}",
-        ]
-        return "\n".join(lines)
 
     def _assemble_monte_carlo(self, results: list, metadata: dict) -> str:
         """Assemble Monte Carlo Pi results."""
@@ -652,26 +550,7 @@ class MasterServer:
         ]
         return "\n".join(lines)
 
-    def _assemble_financial_pricing(self, results: list, metadata: dict) -> str:
-        """Assemble Financial Option Pricing results."""
-        total_paths = 0
-        payoff_sum = 0.0
-        for r in results:
-            if not r.get("success", False):
-                continue
-            data = r.get("data", {})
-            total_paths += data.get("num_paths", 0)
-            payoff_sum += data.get("payoff_sum", 0.0)
 
-        price = payoff_sum / total_paths * math.exp(-0.05 * 1.0) if total_paths > 0 else 0
-
-        lines = [
-            f"Financial Option Pricing (Monte Carlo)",
-            f"Total paths simulated: {total_paths:,}",
-            f"Estimated Call Option Price: ${price:.4f}",
-            f"Interest Rate: 5%, Volatility: 20%",
-        ]
-        return "\n".join(lines)
 
     def _assemble_prime(self, results: list, metadata: dict) -> str:
         """Assemble prime factorization results."""
@@ -759,41 +638,7 @@ class MasterServer:
         ]
         return "\n".join(lines)
 
-    def _assemble_io(self, results: list, metadata: dict) -> str:
-        """Assemble IO simulation results."""
-        total_slept = 0.0
-        for r in results:
-            if not r.get("success", False):
-                continue
-            data = r.get("data", {})
-            total_slept += data.get("slept_for", 0.0)
 
-        lines = [
-            f"IO Simulation Complete",
-            f"Expected sleep total: {metadata['expected_total_sleep']:.2f}s",
-            f"Actual aggregate simulated IO block: {total_slept:.2f}s",
-            f"Parallel advantage verified."
-        ]
-        return "\n".join(lines)
-
-    def _assemble_web_scraper(self, results: list, metadata: dict) -> str:
-        """Assemble Web Scraper results."""
-        total_slept = 0.0
-        total_bytes = 0
-        for r in results:
-            if not r.get("success", False):
-                continue
-            data = r.get("data", {})
-            total_slept += data.get("latency_sec", 0.0)
-            total_bytes += data.get("bytes_downloaded", 0)
-
-        lines = [
-            f"Distributed Web Crawler Complete",
-            f"Total bytes downloaded: {total_bytes / 1024:.1f} KB",
-            f"Network IO time wait blocked: {total_slept:.2f}s",
-            f"Parallel advantage verified mapping network IO."
-        ]
-        return "\n".join(lines)
 
     def _assemble_image_blur(self, results: list, metadata: dict) -> str:
         """Assemble Image Blur results."""
@@ -948,12 +793,8 @@ class MasterServer:
         self._log(f"Splitting task into {num_chunks} chunks...")
         if task_type_name == TaskType.MATRIX_MULTIPLICATION.value:
             chunks, metadata = self._split_matrix(num_chunks, task_id)
-        elif task_type_name == TaskType.ML_INFERENCE.value:
-            chunks, metadata = self._split_ml_inference(num_chunks, task_id)
         elif task_type_name == TaskType.MONTE_CARLO_PI.value:
             chunks, metadata = self._split_monte_carlo(num_chunks, task_id)
-        elif task_type_name == TaskType.FINANCIAL_PRICING.value:
-            chunks, metadata = self._split_financial_pricing(num_chunks, task_id)
         elif task_type_name == TaskType.PRIME_FACTORIZATION.value:
             chunks, metadata = self._split_prime(num_chunks, task_id)
         elif task_type_name == TaskType.RSA_CRACKING.value:
@@ -962,10 +803,6 @@ class MasterServer:
             chunks, metadata = self._split_sorting(num_chunks, task_id)
         elif task_type_name == TaskType.ETL_PIPELINE.value:
             chunks, metadata = self._split_etl_pipeline(num_chunks, task_id)
-        elif task_type_name == TaskType.IO_SIMULATION.value:
-            chunks, metadata = self._split_io(num_chunks, task_id)
-        elif task_type_name == TaskType.WEB_CRAWLER.value:
-            chunks, metadata = self._split_web_scraper(num_chunks, task_id)
         elif task_type_name == TaskType.IMAGE_BLUR.value:
             chunks, metadata = self._split_image_blur(num_chunks, task_id)
         elif task_type_name == TaskType.CRYPTO_HASH.value:
@@ -1028,12 +865,8 @@ class MasterServer:
         # 3. Assemble
         if task_type_name == TaskType.MATRIX_MULTIPLICATION.value:
             summary = self._assemble_matrix(results, metadata)
-        elif task_type_name == TaskType.ML_INFERENCE.value:
-            summary = self._assemble_ml_inference(results, metadata)
         elif task_type_name == TaskType.MONTE_CARLO_PI.value:
             summary = self._assemble_monte_carlo(results, metadata)
-        elif task_type_name == TaskType.FINANCIAL_PRICING.value:
-            summary = self._assemble_financial_pricing(results, metadata)
         elif task_type_name == TaskType.PRIME_FACTORIZATION.value:
             summary = self._assemble_prime(results, metadata)
         elif task_type_name == TaskType.RSA_CRACKING.value:
@@ -1042,8 +875,6 @@ class MasterServer:
             summary = self._assemble_sorting(results, metadata)
         elif task_type_name == TaskType.ETL_PIPELINE.value:
             summary = self._assemble_etl_pipeline(results, metadata)
-        elif task_type_name == TaskType.IO_SIMULATION.value:
-            summary = self._assemble_io(results, metadata)
         elif task_type_name == TaskType.IMAGE_BLUR.value:
             summary = self._assemble_image_blur(results, metadata)
         elif task_type_name == TaskType.CRYPTO_HASH.value:
@@ -1051,7 +882,7 @@ class MasterServer:
         elif task_type_name == TaskType.WEB_LOG_ANALYSIS.value:
             summary = self._assemble_log_analysis(results, metadata)
         else:
-            summary = self._assemble_web_scraper(results, metadata)
+            summary = "Unknown task type"
 
         self._log(f"\n--- Result ---\n{summary}")
 
@@ -1116,7 +947,7 @@ class MasterServer:
         return snapshot
 
     def run_all_experiments(self):
-        """Run all 25 experiments (5 tasks × 5 algorithms) sequentially."""
+        """Run all experiments (all tasks × all algorithms) sequentially."""
         self.comparison_results = []
         tasks = [t.value for t in TaskType]
         algos = list(self.balancers.keys())
@@ -1132,6 +963,36 @@ class MasterServer:
 
         self.current_status = f"All {total} experiments complete!"
         return self.comparison_results
+
+    def run_task_all_algos(self, task_type_name: str):
+        """Run a single task type against all 5 load balancing algorithms."""
+        algos = list(self.balancers.keys())
+        total = len(algos)
+        count = 0
+        for algo_name in algos:
+            count += 1
+            self.current_status = f"Running {count}/{total}: {task_type_name} × {algo_name}"
+            self.run_experiment(task_type_name, algo_name)
+            time.sleep(0.5)
+        self.current_status = "Ready"
+
+    def run_subset_experiments(self, task_list: list):
+        """Run a list of task types, each against all 5 algorithms."""
+        algos = list(self.balancers.keys())
+        total = len(task_list) * len(algos)
+        count = 0
+        for task_name in task_list:
+            for algo_name in algos:
+                count += 1
+                self.current_status = f"Running {count}/{total}: {task_name} × {algo_name}"
+                self.run_experiment(task_name, algo_name)
+                time.sleep(0.5)
+        self.current_status = f"All {total} experiments complete!"
+
+
+# ─── Constants for task categories ────────────────────────────────────
+BENCHMARKS = [t.value for t in TaskType if "(Benchmark)" in t.value]
+USE_CASES = [t.value for t in TaskType if "(Use Case)" in t.value]
 
 
 # ─── Flask Dashboard ──────────────────────────────────────────────────
@@ -1151,7 +1012,8 @@ def api_status():
         "workers": [w.to_dict() for w in master.workers],
         "is_running": master.is_running,
         "current_status": master.current_status,
-        "task_types": [t.value for t in TaskType],
+        "benchmarks": BENCHMARKS,
+        "use_cases": USE_CASES,
         "algorithms": list(master.balancers.keys()),
         "config": {
             "matrix_size": master.matrix_size,
@@ -1191,17 +1053,89 @@ def api_run_experiment():
     return jsonify(result)
 
 
-@app.route("/api/run_all", methods=["POST"])
-def api_run_all():
+@app.route("/api/run_benchmarks_single", methods=["POST"])
+def api_run_benchmarks_single():
+    """Run all 5 algorithms for a single benchmark."""
+    if master.is_running:
+        return jsonify({"error": "Already running"}), 409
+    data = request.json
+    task_type = data.get("task_type")
+    if not task_type or task_type not in BENCHMARKS:
+        return jsonify({"error": f"Invalid benchmark: {task_type}"}), 400
+
+    def _run():
+        master.run_task_all_algos(task_type)
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"message": f"Running all algorithms for {task_type}"})
+
+
+@app.route("/api/run_benchmarks_all", methods=["POST"])
+def api_run_benchmarks_all():
+    """Run all benchmarks × all algorithms."""
     if master.is_running:
         return jsonify({"error": "Already running"}), 409
 
     def _run():
-        master.run_all_experiments()
+        master.run_subset_experiments(BENCHMARKS)
+    threading.Thread(target=_run, daemon=True).start()
+    total = len(BENCHMARKS) * len(master.balancers)
+    return jsonify({"message": f"Started {total} benchmark experiments"})
 
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
-    return jsonify({"message": "Started all 25 experiments"})
+
+@app.route("/api/run_usecases_single", methods=["POST"])
+def api_run_usecases_single():
+    """Run all 5 algorithms for a single use case."""
+    if master.is_running:
+        return jsonify({"error": "Already running"}), 409
+    data = request.json
+    task_type = data.get("task_type")
+    if not task_type or task_type not in USE_CASES:
+        return jsonify({"error": f"Invalid use case: {task_type}"}), 400
+
+    def _run():
+        master.run_task_all_algos(task_type)
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"message": f"Running all algorithms for {task_type}"})
+
+
+@app.route("/api/run_usecases_all", methods=["POST"])
+def api_run_usecases_all():
+    """Run all use cases × all algorithms."""
+    if master.is_running:
+        return jsonify({"error": "Already running"}), 409
+
+    def _run():
+        master.run_subset_experiments(USE_CASES)
+    threading.Thread(target=_run, daemon=True).start()
+    total = len(USE_CASES) * len(master.balancers)
+    return jsonify({"message": f"Started {total} use case experiments"})
+
+
+@app.route("/api/add_worker", methods=["POST"])
+def api_add_worker():
+    """Add a worker node by IP:PORT."""
+    data = request.json
+    address = data.get("address", "").strip()
+    if not address or ":" not in address:
+        return jsonify({"error": "Invalid address format. Use IP:PORT (e.g. 192.168.1.5:5001)"}), 400
+
+    parts = address.split(":")
+    host = parts[0]
+    try:
+        port = int(parts[1])
+    except ValueError:
+        return jsonify({"error": "Port must be a number"}), 400
+
+    worker_id = f"{host}:{port}"
+    for w in master.workers:
+        if w.id == worker_id:
+            return jsonify({"error": f"Worker {worker_id} already exists"}), 409
+
+    new_worker = NodeInfo(host, port, 1)
+    master.workers.append(new_worker)
+    master._check_worker(new_worker)
+    master._log(f"Manually added worker: {worker_id} (alive={new_worker.alive})")
+    return jsonify({"message": f"Worker {worker_id} added", "alive": new_worker.alive})
 
 
 @app.route("/api/comparison")

@@ -25,12 +25,8 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
 
     if task_type == "Matrix Multiplication (Benchmark)":
         result_data = _compute_matrix(data)
-    elif task_type == "ML Batch Inference (Use Case)":
-        result_data = _compute_ml_inference(data)
     elif task_type == "Monte Carlo Pi (Benchmark)":
         result_data = _compute_monte_carlo(data)
-    elif task_type == "Financial Option Pricing (Use Case)":
-        result_data = _compute_financial_pricing(data)
     elif task_type == "Prime Factorization (Benchmark)":
         result_data = _compute_prime_factorization(data)
     elif task_type == "RSA Key Cracking (Use Case)":
@@ -39,10 +35,6 @@ def execute_task(task_type: str, data: dict, worker_id: str) -> dict:
         result_data = _compute_sorting(data)
     elif task_type == "ETL Log Aggregation (Use Case)":
         result_data = _compute_etl_pipeline(data)
-    elif task_type == "IO Simulation (Benchmark)":
-        result_data = _compute_io_sim(data)
-    elif task_type == "Distributed Web Crawler (Use Case)":
-        result_data = _compute_web_scraper(data)
     elif task_type == "Image Blur (Use Case)":
         result_data = _compute_image_blur(data)
     elif task_type == "Crypto Proof-of-Work (Use Case)":
@@ -76,40 +68,7 @@ def _compute_matrix(data: dict) -> dict:
         result_rows.append(row)
     return {"result_rows": result_rows, "start_row": start_row, "end_row": end_row, "n": n}
 
-# ─── ML Batch Inference (Use Case) ────────────────────────────────────
-def _compute_ml_inference(data: dict) -> dict:
-    """
-    Simulate a batch inference pass through a Neural Network layer with ReLU.
-    Input:  batch_x (2D list), weights (2D list), bias (1D list), start_idx, end_idx
-    Output: predictions (2D list), start_idx, end_idx
-    """
-    batch_x = data["batch_x"]
-    weights = data["weights"]
-    bias = data["bias"]
-    start_idx = data["start_idx"]
-    end_idx = data["end_idx"]
-    n_features = len(weights)
-    n_neurons = len(weights[0])
 
-    num_samples = end_idx - start_idx
-    predictions = []
-
-    for i in range(num_samples):
-        row = []
-        for j in range(n_neurons):
-            s = 0.0
-            for k in range(n_features):
-                s += batch_x[i][k] * weights[k][j]
-            s += bias[j]
-            # ReLU Activation
-            row.append(max(0.0, round(s, 6)))
-        predictions.append(row)
-
-    return {
-        "predictions": predictions,
-        "start_idx": start_idx,
-        "end_idx": end_idx,
-    }
 
 
 # ─── Monte Carlo Pi (Benchmark) ──────────────────────────────────
@@ -120,39 +79,7 @@ def _compute_monte_carlo(data: dict) -> dict:
     inside = sum(1 for _ in range(num_samples) if (rng.random()**2 + rng.random()**2) <= 1.0)
     return {"num_samples": num_samples, "inside_count": inside}
 
-# ─── Financial Option Pricing (Use Case) ─────────────────────────
-def _compute_financial_pricing(data: dict) -> dict:
-    """
-    Estimate European Call Option price using Black-Scholes Monte Carlo simulation.
-    Input:  num_paths (int), S0, K, T, r, sigma, seed
-    """
-    num_paths = data["num_paths"]
-    S0 = data["S0"]
-    K = data["K"]
-    T = data["T"]
-    r = data["r"]
-    sigma = data["sigma"]
-    seed = data.get("seed", 42)
 
-    rng = random.Random(seed)
-    payoff_sum = 0.0
-
-    # Precompute drift
-    drift = (r - 0.5 * sigma * sigma) * T
-    vol = sigma * math.sqrt(T)
-
-    for _ in range(num_paths):
-        # Approximate standard normal using Box-Muller or just sum of uniform
-        # Let's use simple normal approximation for speed, or random.gauss if supported
-        Z = rng.gauss(0, 1)
-        ST = S0 * math.exp(drift + vol * Z)
-        payoff = max(ST - K, 0)
-        payoff_sum += payoff
-
-    return {
-        "num_paths": num_paths,
-        "payoff_sum": payoff_sum,
-    }
 
 
 # ─── Prime Factorization (Benchmark) ─────────────────────────────
@@ -235,29 +162,7 @@ def _compute_etl_pipeline(data: dict) -> dict:
     }
 
 
-# ─── IO Simulation (Benchmark) ───────────────────────────────────
-def _compute_io_sim(data: dict) -> dict:
-    sleep_time = data["sleep_time"]
-    time.sleep(sleep_time)
-    return {"slept_for": sleep_time}
 
-# ─── Distributed Web Crawler (Use Case) ──────────────────────────
-def _compute_web_scraper(data: dict) -> dict:
-    """
-    Simulate fetching public APIs or large web pages where latency varies wildly due to network conditions.
-    """
-    target_url = data.get("target_url", "http://example.com")
-    simulated_latency = data.get("simulated_latency", 0.5)
-    
-    # We use sleep to avoid actually hammering an external server to death in a benchmark.
-    # It perfectly mimics thread-blocking IO wait.
-    time.sleep(simulated_latency)
-    
-    return {
-        "url_scraped": target_url,
-        "bytes_downloaded": int(random.Random().uniform(1024, 50000)), # mock data size
-        "latency_sec": simulated_latency
-    }
 
 # ─── Image Blur — CPU-Bound (Use Case) ───────────────────────────
 def _compute_image_blur(data: dict) -> dict:
