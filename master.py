@@ -401,7 +401,7 @@ class MasterServer:
                 data={
                     "base_string": base_string,
                     "difficulty": diff,
-                    "max_iterations": 10_000_000,
+                    "max_iterations": 1_000_000,
                 }
             ))
             self._log(f"  Generated chunk {c}: difficulty={diff}, base=\"{base_string[:12]}...\"")
@@ -409,6 +409,7 @@ class MasterServer:
         return chunks, {
             "total_tasks": num_chunks,
             "difficulty": diff,
+            "difficulty_distribution": {diff: num_chunks},
         }
 
     def _split_log_analysis(self, num_chunks: int, task_id: str):

@@ -123,3 +123,4 @@ Desktop.ini
 # Project specific
 *.log
 config.local.ini
+generated_images
