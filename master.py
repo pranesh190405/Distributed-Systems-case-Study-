@@ -441,6 +441,10 @@ class MasterServer:
                         (x * 5 + y * 17 + c) % 256,
                     )
 
+            # Save original image to disk
+            os.makedirs("generated_images", exist_ok=True)
+            img.save(f"generated_images/task_{task_id}_chunk_{c}_{label}.png", format="PNG")
+
             # Serialize to base64
             buf = io.BytesIO()
             img.save(buf, format="PNG")
@@ -449,7 +453,7 @@ class MasterServer:
             chunks.append(TaskChunk(
                 task_id=task_id, chunk_id=c, total_chunks=num_chunks,
                 task_type=TaskType.IMAGE_BLUR.value,
-                data={"image_b64": b64, "image_size": label}
+                data={"image_b64": b64, "image_size": label, "task_id": task_id, "chunk_id": c}
             ))
             self._log(f"  Generated chunk {c}: {label} ({len(b64) // 1024} KB payload)")
 
