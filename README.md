@@ -22,54 +22,6 @@ A **multi-machine distributed computing system** built from scratch in Python. A
 
 ---
 
-## System Architecture
-
-```
-        ┌────────────────────────────────────────────────────────┐
-        │            Client Application (Dashboard)              │
-        │                          │      ▲                      │
-        │        HTTP (Port 5000)  ▼      │ Comparative Analytics│
-        └────────────────────────────────────────────────────────┘
-                                   │      │
-┌────────────────────────────────────────────────────────────────────────┐
-│                            master (Server)                             │
-│                           Load balancer logic                          │
-│                                                                        │
-│       ┌────────────────────────────────────────────────────────┐       │
-│       │                Load Balancing Algorithm                │       │
-│       │ ┌───────┐ ┌────────┐ ┌───────┐ ┌──────┐ ┌────────────┐ │       │
-│       │ │ Least │ │Weighted│ │ ROUND │ │Random│ │Least Resp. │ │       │
-│       │ │ Conn. │ │   RR   │ │ ROBIN │ │      │ │   Time     │ │       │
-│       │ └───────┘ └────────┘ └───────┘ └──────┘ └────────────┘ │       │
-│       └────────────────────────────────────────────────────────┘       │
-│               │                                                 ▲      │
-│               │    TCP (Task Dispatch & Heartbeat)              │      │
-└───────────────┼─────────────────────────────────────────────────┼──────┘
-       │        │                                                 │
-       │        │       ┌───────────────────────┐                 │
-       │        ├──────▶│        slave1         │─────────────────┤
-       │        │       └───────────────────────┘                 │ TCP
- Includes       │       ┌───────────────────────┐                 │(Send
-       │        ├──────▶│        slave2         │─────────────────┤ final
-       │        │       └───────────────────────┘                 │analysis
-       ▼        │       ┌───────────────────────┐                 │to master)
-┌───────────────┴────┐  │        slave3         │─────────────────┘
-│     Use-Cases      │  └───────────────────────┘
-│ ┌─────┐ ┌────────┐ │             │
-│ │Crypt│ │ETL Log │ │             ▼
-│ │PoW  │ │Aggr.   │ │    UDP Broadcast (Worker
-│ └─────┘ └────────┘ │    Registration & Discovery)
-│ ┌─────┐ ┌────────┐ │
-│ │Image│ │RSA Key │ │
-│ │Blur │ │Cracking│ │
-│ └─────┘ └────────┘ │
-│ ┌───────┐          │
-│ │Web Log│          │
-│ │Analys.│          │
-│ └───────┘          │
-└────────────────────┘
-```
-
 **Flow:**
 1. Master splits a task into N chunks
 2. Load balancer selects a worker for each chunk
