@@ -1136,6 +1136,23 @@ def api_add_worker():
     return jsonify({"message": f"Worker {worker_id} added", "alive": new_worker.alive})
 
 
+@app.route("/api/remove_worker", methods=["POST"])
+def api_remove_worker():
+    """Remove a worker node by IP:PORT."""
+    data = request.json
+    address = data.get("address", "").strip()
+    if not address:
+        return jsonify({"error": "Missing address"}), 400
+
+    for i, w in enumerate(master.workers):
+        if w.id == address:
+            del master.workers[i]
+            master._log(f"Manually removed worker: {address}")
+            return jsonify({"message": f"Worker {address} removed"})
+
+    return jsonify({"error": f"Worker {address} not found"}), 404
+
+
 @app.route("/api/update_config", methods=["POST"])
 def api_update_config():
     """Update configurable parameters for use cases."""

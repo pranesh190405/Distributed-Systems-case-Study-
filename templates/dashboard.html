@@ -357,6 +357,7 @@
             runUcSingle: '/api/run_usecases_single',
             runUcAll: '/api/run_usecases_all',
             addWorker: '/api/add_worker',
+            removeWorker: '/api/remove_worker',
             updateConfig: '/api/update_config',
             setWeight: '/api/set_worker_weight',
             clear: '/api/clear',
@@ -486,9 +487,14 @@
                 <div class="card bg-slate-800 rounded-lg p-3 border-l-4 ${w.alive ? 'border-emerald-500' : 'border-red-500'}">
                     <div class="flex justify-between items-center mb-2">
                         <span class="font-mono text-sm font-bold text-white">${w.id}</span>
-                        ${w.alive ?
-                    `<span class="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded">Online</span>` :
-                    `<span class="text-xs bg-red-900/50 text-red-400 px-2 py-0.5 rounded">Offline</span>`}
+                        <div class="flex items-center space-x-2">
+                            ${w.alive ?
+                        `<span class="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded">Online</span>` :
+                        `<span class="text-xs bg-red-900/50 text-red-400 px-2 py-0.5 rounded">Offline</span>`}
+                            <button class="text-xs bg-red-900/50 text-red-300 hover:text-white hover:bg-red-700 px-2 py-0.5 rounded transition btn-remove-worker" data-worker="${w.id}" title="Remove Node">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 text-xs text-slate-400">
                         <div>CPU: <span class="text-white">${w.cpu_usage}%</span></div>
@@ -523,6 +529,26 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ worker_id: wid, weight: wt })
                     });
+                });
+            });
+
+            // Bind remove worker events
+            document.querySelectorAll('.btn-remove-worker').forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    if (!confirm(`Are you sure you want to remove node ${this.dataset.worker}?`)) return;
+                    const wid = this.dataset.worker;
+                    try {
+                        const res = await fetch(API.removeWorker, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ address: wid })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) alert(`Error: ${data.error}`);
+                        pollData();
+                    } catch(err) {
+                        alert('Error removing worker');
+                    }
                 });
             });
         }
